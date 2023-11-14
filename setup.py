@@ -33,11 +33,11 @@ setup(
     license='Apache License, Version 2.0',
     tests_require=['pytest'],
     entry_points={
-        'ros2ai.command': [
-            'ai = ros2topic.command.topic:AiCommand',
+        'ros2cli.command': [
+            'ai = ros2ai.command.ai:AiCommand',
         ],
 #        'ros2ai.extension_point': [
-#            'ros2ai.verb = ros2topic.verb:VerbExtension',
+#            'ros2ai.verb = ros2ai.verb:VerbExtension',
 #        ],
 #        'ros2ai.verb': [
 #            'xx = ros2ai.verb.xx:XxVerb',
