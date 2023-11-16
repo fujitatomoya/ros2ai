@@ -12,13 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import ros2ai.api.config as config
+ROS_OPENAI_API_KEY_ENV_VAR = 'OPENAI_API_KEY'
 
-from ros2cli.command import CommandExtension
+ROS_OPENAI_DEFAULT_MODEL = 'gpt-3.5-turbo'
+ROS_OPENAI_MODEL_NAME_ENV_VAR = 'OPENAI_MODEL_NAME'
 
-
-class AiCommand(CommandExtension):
-    """Check ROS setup and other potential issues."""
-
-    def main(self, *, parser, args):
-        print('ros2ai command issued')
+ROS_OPENAI_ENDPOINT_ENV_VAR = 'OPENAI_ENDPOINT'
