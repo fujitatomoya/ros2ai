@@ -60,6 +60,6 @@ def get_endpoint_url() -> str:
     url = os.environ.get(constants.ROS_OPENAI_ENDPOINT_ENV_VAR)
     # TODO(@fujitatomoya):check if that is valid url before return.
     if not url:
-        return None
+        return constants.ROS_OPENAI_DEFAULT_ENDPOINT
     else:
         return url

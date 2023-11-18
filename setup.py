@@ -36,13 +36,13 @@ setup(
         'ros2cli.command': [
             'ai = ros2ai.command.ai:AiCommand',
         ],
-#        'ros2ai.extension_point': [
-#            'ros2ai.verb = ros2ai.verb:VerbExtension',
-#        ],
-#        'ros2ai.verb': [
-#            'xx = ros2ai.verb.xx:XxVerb',
-#            'yy = ros2ai.verb.yy:YyVerb',
-#            'zz = ros2ai.verb.zz:ZzVerb',
-#        ],
+        'ros2ai.extension_point': [
+            'ros2ai.verb = ros2ai.verb:VerbExtension',
+        ],
+        'ros2ai.verb': [
+            'status = ros2ai.verb.status:StatusVerb',
+#            'query = ros2ai.verb.query:QueryVerb',
+#            'joke = ros2ai.verb.joke:JokeVerb',
+        ],
     }
 )

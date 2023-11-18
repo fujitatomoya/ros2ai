@@ -12,10 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ROS_OPENAI_API_KEY_ENV_VAR = 'OPENAI_API_KEY'
+import ros2ai.api.config as config
+import ros2ai.api.constants as constants
 
-ROS_OPENAI_DEFAULT_MODEL = 'gpt-3.5-turbo'
-ROS_OPENAI_MODEL_NAME_ENV_VAR = 'OPENAI_MODEL_NAME'
+from ros2ai.verb import VerbExtension
 
-ROS_OPENAI_DEFAULT_ENDPOINT = 'https://api.openai.com/v1'
-ROS_OPENAI_ENDPOINT_ENV_VAR = 'OPENAI_ENDPOINT'
+
+class StatusVerb(VerbExtension):
+    """Check OpenAI API status and configuration."""
+
+    def add_arguments(self, parser, cli_name):
+        parser.add_argument(
+            '--verbose',
+            '-v',
+            action='store_true',
+            help='Prints detailed configuration information')
+
+    def main(self, *, args):
+        print(config.get_api_key())
+        print(config.get_ai_model())
+        print(config.get_endpoint_url())

@@ -13,12 +13,44 @@
 # limitations under the License.
 
 import ros2ai.api.config as config
+import ros2ai.api.constants as constants
 
+from ros2cli.command import add_subparsers_on_demand
 from ros2cli.command import CommandExtension
 
 
 class AiCommand(CommandExtension):
-    """Check ROS setup and other potential issues."""
+    """
+    ROS 2 OpenAI command line interface. ('OPENAI_API_KEY' is required)
+    """
+
+    def add_arguments(self, parser, cli_name):
+        self._subparser = parser
+
+        # add global arguments
+        parser.add_argument(
+            '-m', '--model', metavar='<model>', type=str, default=constants.ROS_OPENAI_DEFAULT_MODEL,
+            help=f'Set OpenAI API model (default %(default)s) or '
+              f'use {constants.ROS_OPENAI_MODEL_NAME_ENV_VAR} environment variable.')
+        parser.add_argument(
+            '-u', '--url', metavar='<url>', type=str, default=constants.ROS_OPENAI_DEFAULT_ENDPOINT,
+            help='Set OpenAI API endpoint URL (default %(default)s) or '
+              f'use {constants.ROS_OPENAI_ENDPOINT_ENV_VAR} environment variable.')
+        parser.add_argument(
+            '-t', '--token', metavar='<token>', type=int, default=None,
+            help='Set OpenAI API maximum token (default %(default)s)')
+
+        # add arguments and sub-commands of verbs
+        add_subparsers_on_demand(
+            parser, cli_name, '_verb', 'ros2ai.verb', required=False)
 
     def main(self, *, parser, args):
-        print('ros2ai command issued')
+        if not hasattr(args, '_verb'):
+            # in case no verb was passed
+            self._subparser.print_help()
+            return 0
+
+        extension = getattr(args, '_verb')
+
+        # call the verb's main method
+        return extension.main(args=args)
