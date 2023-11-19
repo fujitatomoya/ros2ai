@@ -31,11 +31,11 @@ class AiCommand(CommandExtension):
         parser.add_argument(
             '-m', '--model', metavar='<model>', type=str, default=constants.ROS_OPENAI_DEFAULT_MODEL,
             help=f'Set OpenAI API model (default %(default)s) or '
-              f'use {constants.ROS_OPENAI_MODEL_NAME_ENV_VAR} environment variable.')
+              f'use {constants.ROS_OPENAI_MODEL_NAME_ENV_VAR} environment variable. (argument prevails)')
         parser.add_argument(
             '-u', '--url', metavar='<url>', type=str, default=constants.ROS_OPENAI_DEFAULT_ENDPOINT,
             help='Set OpenAI API endpoint URL (default %(default)s) or '
-              f'use {constants.ROS_OPENAI_ENDPOINT_ENV_VAR} environment variable.')
+              f'use {constants.ROS_OPENAI_ENDPOINT_ENV_VAR} environment variable. (argument prevails)')
         parser.add_argument(
             '-t', '--token', metavar='<token>', type=int, default=None,
             help='Set OpenAI API maximum token (default %(default)s)')

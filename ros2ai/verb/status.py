@@ -29,6 +29,5 @@ class StatusVerb(VerbExtension):
             help='Prints detailed configuration information')
 
     def main(self, *, args):
-        print(config.get_api_key())
-        print(config.get_ai_model())
-        print(config.get_endpoint_url())
+        openai_config = config.OpenAiConfig(args)
+        openai_config.display_all()

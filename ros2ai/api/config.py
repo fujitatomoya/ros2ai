@@ -63,3 +63,46 @@ def get_endpoint_url() -> str:
         return constants.ROS_OPENAI_DEFAULT_ENDPOINT
     else:
         return url
+
+class OpenAiConfig:
+    """
+    Collect all OpenAI API related configuration from user setting as key-value pair.
+    """
+    def __init__(self, args):
+        self.config_pair = {}
+
+        # api key is mandatory, this could throw the exception if not set
+        self.config_pair['api_key'] = get_api_key()
+
+        # ai model is optional, command line argument prevails
+        self.config_pair['api_model'] = get_ai_model()
+        if args.model != constants.ROS_OPENAI_DEFAULT_MODEL:
+            self.config_pair['api_model'] = args.model
+
+        # api endpoint is optional, command line argument prevails
+        self.config_pair['api_endpoint'] = get_endpoint_url()
+        if args.url != constants.ROS_OPENAI_DEFAULT_MODEL:
+            self.config_pair['api_endpoint'] = args.url
+
+        # api token is optional, only available via command line argument
+        self.config_pair['api_token'] = args.token
+
+    def set_value(self, key, value):
+        # Set a key-value pair
+        self.config_pair[key] = value
+
+    def get_value(self, key):
+        # Get the value for a given key
+        return self.config_pair.get(key, None)
+
+    def remove_key(self, key):
+        # Remove a key and its associated value
+        if key in self.config_pair:
+            del self.config_pair[key]
+
+    def display_all(self):
+        # Display all key-value pairs
+        for key, value in self.config_pair.items():
+            # we should never print the api key for the security
+            if key != 'api_key':
+                print(f"{key}: {value}")
