@@ -16,6 +16,8 @@ import os
 
 import ros2ai.api.constants as constants
 
+from openai import OpenAI
+
 
 def get_api_key() -> str:
     """
@@ -105,4 +107,26 @@ class OpenAiConfig:
         for key, value in self.config_pair.items():
             # we should never print the api key for the security
             if key != 'api_key':
-                print(f"{key}: {value}")
+                print(f"----- {key}: {value}")
+
+    def is_api_key_valid(self):
+        # Validate api key, model and endpoint to post the API
+        client = OpenAI(
+            api_key=self.get_value('api_key')
+        )
+        try:
+            completion = client.chat.completions.create(
+                model=self.get_value('api_model'),
+                messages=[
+                    {
+                        "role": "user",
+                        "content": "Say this is a test",
+                    },
+                ],
+            )
+        except Exception as e:
+            print('Failed to call OpenAI API: ' + str(e))
+            return False
+        else:
+            print(completion.choices[0].message.content)
+            return True

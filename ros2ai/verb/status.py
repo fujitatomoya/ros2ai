@@ -13,8 +13,10 @@
 # limitations under the License.
 
 import ros2ai.api.config as config
+import ros2ai.api.openai as openai
 import ros2ai.api.constants as constants
 
+from ros2ai.api import curl_get_request
 from ros2ai.verb import VerbExtension
 
 
@@ -30,4 +32,20 @@ class StatusVerb(VerbExtension):
 
     def main(self, *, args):
         openai_config = config.OpenAiConfig(args)
-        openai_config.display_all()
+        if (args.verbose is True):
+            openai_config.display_all()
+
+        # try to call OpenAI API with user configured setting
+        is_valid = openai_config.is_api_key_valid()
+
+        # try to list the all models via user configured api key
+        headers = {"Authorization": "Bearer " + openai_config.get_value('api_key')}
+        can_get_models = curl_get_request(
+            "https://api.openai.com/v1/models",
+            headers
+        )
+
+        if is_valid and can_get_models:
+            print("[SUCCESS] Valid OpenAI API key.")
+        else:
+            print("[FAILURE] Invalid OpenAI API key.")
