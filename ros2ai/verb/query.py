@@ -12,14 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import ros2ai.api.config as config
-
-from ros2ai.api import curl_get_request, add_global_arguments
+from ros2ai.api import add_global_arguments
+from ros2ai.api.openai import ChatCompletionClient
 from ros2ai.verb import VerbExtension
 
-
-class StatusVerb(VerbExtension):
-    """Check OpenAI API status and configuration."""
+class QueryVerb(VerbExtension):
+    """Query a single completion to OpenAI API."""
 
     def add_arguments(self, parser, cli_name):
         # add global arguments
@@ -27,27 +25,24 @@ class StatusVerb(VerbExtension):
 
         # sub-command arguments
         parser.add_argument(
-            '-v',
+            "questions", nargs="+", default=[],
+            help="Multiple sentences separated by spaces, enclosed in double quotes.")
+        parser.add_argument(
             '--verbose',
+            '-v',
             action='store_true',
-            help='Prints detailed configuration information')
+            help='Prints detailed response information')
 
     def main(self, *, args):
-        openai_config = config.OpenAiConfig(args)
+        sentence = ''
+        if (args.questions):
+            sentence = " ".join(args.questions)
+        if (sentence == ''):
+            print('Dont be shy, put some questions! (I am not AI)') 
+        
+        client = ChatCompletionClient(args)
+        client.call(sentence)
         if (args.verbose is True):
-            openai_config.display_all()
-
-        # try to call OpenAI API with user configured setting
-        is_valid = openai_config.is_api_key_valid()
-
-        # try to list the all models via user configured api key
-        headers = {"Authorization": "Bearer " + openai_config.get_value('api_key')}
-        can_get_models = curl_get_request(
-            "https://api.openai.com/v1/models",
-            headers
-        )
-
-        if is_valid and can_get_models:
-            print("[SUCCESS] Valid OpenAI API key.")
+            print(client.response_all())
         else:
-            print("[FAILURE] Invalid OpenAI API key.")
+            print(client.response_content())
