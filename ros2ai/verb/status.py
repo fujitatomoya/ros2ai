@@ -16,7 +16,7 @@ import ros2ai.api.config as config
 import ros2ai.api.openai as openai
 import ros2ai.api.constants as constants
 
-from ros2ai.api import curl_get_request
+from ros2ai.api import curl_get_request, add_global_arguments
 from ros2ai.verb import VerbExtension
 
 
@@ -24,6 +24,10 @@ class StatusVerb(VerbExtension):
     """Check OpenAI API status and configuration."""
 
     def add_arguments(self, parser, cli_name):
+        # add global arguments
+        add_global_arguments(parser)
+
+        # sub-command arguments
         parser.add_argument(
             '--verbose',
             '-v',
