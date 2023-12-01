@@ -15,6 +15,8 @@
 import json
 import subprocess
 
+import ros2ai.api.constants as constants
+
 def add_global_arguments(parser):
         # add global arguments
     parser.add_argument(

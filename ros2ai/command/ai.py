@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import ros2ai.api.config as config
-import ros2ai.api.constants as constants
-
 from ros2ai.api import add_global_arguments
 
 from ros2cli.command import add_subparsers_on_demand
@@ -27,11 +24,10 @@ class AiCommand(CommandExtension):
     """
 
     def add_arguments(self, parser, cli_name):
-        self._subparser = parser
-
         # add global arguments
         add_global_arguments(parser)
 
+        self._subparser = parser
         # add arguments and sub-commands of verbs
         add_subparsers_on_demand(
             parser, cli_name, '_verb', 'ros2ai.verb', required=False)
@@ -41,8 +37,8 @@ class AiCommand(CommandExtension):
             # in case no verb was passed
             self._subparser.print_help()
             return 0
-
-        extension = getattr(args, '_verb')
-
-        # call the verb's main method
-        return extension.main(args=args)
+        else:
+            # if verb was passed
+            extension = getattr(args, '_verb')
+            # call the verb's main method
+            return extension.main(args=args)
