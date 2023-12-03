@@ -120,7 +120,7 @@ class OpenAiConfig:
                 messages=[
                     {
                         "role": "user",
-                        "content": "Say this is a test",
+                        "content": "Are you in service?",
                     },
                 ],
             )

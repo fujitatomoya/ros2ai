@@ -31,6 +31,11 @@ class StatusVerb(VerbExtension):
             '--verbose',
             action='store_true',
             help='Prints detailed configuration information')
+        parser.add_argument(
+            '-l',
+            '--list',
+            action='store_true',
+            help='Prints all available models')
 
     def main(self, *, args):
         openai_config = config.OpenAiConfig(args)
@@ -42,7 +47,7 @@ class StatusVerb(VerbExtension):
 
         # try to list the all models via user configured api key
         headers = {"Authorization": "Bearer " + openai_config.get_value('api_key')}
-        can_get_models = curl_get_request(
+        can_get_models, model_list = curl_get_request(
             "https://api.openai.com/v1/models",
             headers
         )
@@ -51,3 +56,8 @@ class StatusVerb(VerbExtension):
             print("[SUCCESS] Valid OpenAI API key.")
         else:
             print("[FAILURE] Invalid OpenAI API key.")
+
+        if (args.list is True):
+            print("Available Models:")
+            for model in model_list:
+                print(model)

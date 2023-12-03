@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Optional, List, Tuple
+
 import json
 import subprocess
 
@@ -32,7 +34,8 @@ def add_global_arguments(parser):
         help='Set OpenAI API maximum token (default %(default)s)')
 
 
-def curl_get_request(url, headers=None) -> bool:
+def curl_get_request(url, headers=None) -> Tuple[bool, Optional[List[str]]]:
+    response_list = []
     # only supports basic curl subprocess command
     curl_cmd = ["curl", url]
 
@@ -48,13 +51,15 @@ def curl_get_request(url, headers=None) -> bool:
             parsed_data = json.loads(result.stdout)
             if 'error' in parsed_data:
                 print(parsed_data['error'])
-                return False
+                return False, None
             else:
-                return True
+                for data in parsed_data['data']:
+                    response_list.append(data['id'])
+                return True, response_list
         else:
             # this means, subprocess returns failure
             print(result.stdout)
-            return False
+            return False, None
     except Exception as e:
         print(f"Error executing curl command: {e}")
-        return False
+        return False, None
