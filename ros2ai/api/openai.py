@@ -46,8 +46,44 @@ class ChatCompletionClient(OpenAiConfig):
         else:
             pass
 
-    def response_content(self):
-        return self.completion_.choices[0].message.content
+    def print_content(self):
+        print(self.completion_.choices[0].message.content)
 
-    def response_all(self):
-        return self.completion_
+    def print_all(self):
+        print(self.completion_)
+
+class ChatCompletionClientStream(OpenAiConfig):
+    """
+    Create single chat completion stream client w/o session and call OpenAI.
+    """
+    def __init__(self, args):
+        # get OpenAI configuration
+        super().__init__(args)
+
+        self.client_ = OpenAI(
+            api_key=self.get_value('api_key')
+        )
+        self.stream_ = None
+
+    def call(self, sentence):
+        try:
+            self.stream_ = self.client_.chat.completions.create(
+                model=self.get_value('api_model'),
+                messages=[
+                    {
+                        "role": "user",
+                        "content": f"{sentence}",
+                    },
+                ],
+                stream=True
+            )
+        except Exception as e:
+            print('Failed to call OpenAI API: ' + str(e))
+        else:
+            pass
+
+    def print_stream(self):
+        for chunk in self.stream_:
+            if chunk.choices[0].delta.content is not None:
+                print(chunk.choices[0].delta.content, end="")
+        print("\n")
