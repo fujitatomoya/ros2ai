@@ -28,15 +28,15 @@ class QueryVerb(VerbExtension):
             "questions", nargs="+", default=[],
             help="Multiple sentences separated by spaces, enclosed in double quotes.")
         parser.add_argument(
-            '-s',
-            '--stream',
+            '-n',
+            '--nostream',
             action='store_true',
-            help='Prints using streaming responses')
+            help='Prints using no streaming completion responses')
         parser.add_argument(
             '-v',
             '--verbose',
             action='store_true',
-            help='Prints detailed response information')
+            help='Prints detailed response information (only available with nostream option)')
 
     def main(self, *, args):
         sentence = ''
@@ -45,14 +45,14 @@ class QueryVerb(VerbExtension):
         if (sentence == ''):
             print('Dont be shy, put some questions! (I am not AI)') 
         
-        if (args.stream is True):
-            client = ChatCompletionClientStream(args)
-            client.call(sentence)
-            client.print_stream()
-        else:
+        if (args.nostream is True):
             client = ChatCompletionClient(args)
             client.call(sentence)
             if (args.verbose is True):
                 client.print_all()
             else:
                 client.print_content()
+        else:
+            client = ChatCompletionClientStream(args)
+            client.call(sentence)
+            client.print_stream()
