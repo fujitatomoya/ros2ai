@@ -123,10 +123,15 @@ class OpenAiConfig:
                         "content": "Are you in service?",
                     },
                 ],
+                max_tokens=self.get_value('api_token')
             )
         except Exception as e:
             print('Failed to call OpenAI API: ' + str(e))
             return False
         else:
-            print(completion.choices[0].message.content)
-            return True
+            if (completion.choices[0].finish_reason != 'stop'):
+                print('Failed chat completion with: ' + completion.choices[0].finish_reason)
+                return False
+            else:
+                print(completion.choices[0].message.content)
+                return True

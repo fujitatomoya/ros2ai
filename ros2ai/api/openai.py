@@ -40,6 +40,7 @@ class ChatCompletionClient(OpenAiConfig):
                         "content": f"{sentence}",
                     },
                 ],
+                max_tokens=self.get_value('api_token')
             )
         except Exception as e:
             print('Failed to call OpenAI API: ' + str(e))
@@ -47,7 +48,10 @@ class ChatCompletionClient(OpenAiConfig):
             pass
 
     def print_content(self):
-        print(self.completion_.choices[0].message.content)
+        if (self.completion_.choices[0].finish_reason != 'stop'):
+            print('Failed chat completion with: ' + self.completion_.choices[0].finish_reason)
+        else:
+            print(self.completion_.choices[0].message.content)
 
     def print_all(self):
         print(self.completion_)
@@ -75,7 +79,9 @@ class ChatCompletionClientStream(OpenAiConfig):
                         "content": f"{sentence}",
                     },
                 ],
-                stream=True
+                stream=True,
+                max_tokens=self.get_value('api_token')
+
             )
         except Exception as e:
             print('Failed to call OpenAI API: ' + str(e))
@@ -83,6 +89,7 @@ class ChatCompletionClientStream(OpenAiConfig):
             pass
 
     def print_stream(self):
+        # TODO@fujitatomoya: check `finish_reason` in stream if available?
         for chunk in self.stream_:
             if chunk.choices[0].delta.content is not None:
                 print(chunk.choices[0].delta.content, end="")
