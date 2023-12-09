@@ -29,8 +29,10 @@ class ChatCompletionClient(OpenAiConfig):
             api_key=self.get_value('api_key')
         )
         self.completion_ = None
+        self.stream_ = True
 
-    def call(self, sentence):
+    def call(self, sentence, stream=True):
+        self.stream_ = stream
         try:
             self.completion_ = self.client_.chat.completions.create(
                 model=self.get_value('api_model'),
@@ -40,57 +42,30 @@ class ChatCompletionClient(OpenAiConfig):
                         "content": f"{sentence}",
                     },
                 ],
+                stream=self.stream_,
                 max_tokens=self.get_value('api_token')
+
             )
         except Exception as e:
             print('Failed to call OpenAI API: ' + str(e))
         else:
             pass
 
-    def print_content(self):
-        if (self.completion_.choices[0].finish_reason != 'stop'):
-            print('Failed chat completion with: ' + self.completion_.choices[0].finish_reason)
+    def print_result(self):
+        if self.completion_ is None:
+            pass
+        if self.stream_ is True:
+            # TODO@fujitatomoya: check `finish_reason` in stream if available?
+            for chunk in self.completion_:
+                if chunk.choices[0].delta.content is not None:
+                    print(chunk.choices[0].delta.content, end="")
+            print("\n")
         else:
-            print(self.completion_.choices[0].message.content)
+            if (self.completion_.choices[0].finish_reason != 'stop'):
+                print('Failed chat completion with: ' + self.completion_.choices[0].finish_reason)
+            else:
+                print(self.completion_.choices[0].message.content)
 
     def print_all(self):
-        print(self.completion_)
-
-class ChatCompletionClientStream(OpenAiConfig):
-    """
-    Create single chat completion stream client w/o session and call OpenAI.
-    """
-    def __init__(self, args):
-        # get OpenAI configuration
-        super().__init__(args)
-
-        self.client_ = OpenAI(
-            api_key=self.get_value('api_key')
-        )
-        self.stream_ = None
-
-    def call(self, sentence):
-        try:
-            self.stream_ = self.client_.chat.completions.create(
-                model=self.get_value('api_model'),
-                messages=[
-                    {
-                        "role": "user",
-                        "content": f"{sentence}",
-                    },
-                ],
-                stream=True,
-                max_tokens=self.get_value('api_token')
-
-            )
-        except Exception as e:
-            print('Failed to call OpenAI API: ' + str(e))
-        else:
-            pass
-
-    def print_stream(self):
-        # TODO@fujitatomoya: check `finish_reason` in stream if available?
-        for chunk in self.stream_:
-            if chunk.choices[0].delta.content is not None:
-                print(chunk.choices[0].delta.content, end="")
-        print("\n")
+        if self.stream_ is False:
+            print(self.completion_)

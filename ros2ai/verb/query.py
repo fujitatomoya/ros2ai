@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from ros2ai.api import add_global_arguments
-from ros2ai.api.openai import ChatCompletionClient, ChatCompletionClientStream
+from ros2ai.api.openai import ChatCompletionClient
 from ros2ai.verb import VerbExtension
 
 class QueryVerb(VerbExtension):
@@ -45,14 +45,9 @@ class QueryVerb(VerbExtension):
         if (sentence == ''):
             print('Dont be shy, put some questions! (I am not AI)') 
         
-        if (args.nostream is True):
-            client = ChatCompletionClient(args)
-            client.call(sentence)
-            if (args.verbose is True):
-                client.print_all()
-            else:
-                client.print_content()
+        client = ChatCompletionClient(args)
+        client.call(sentence, stream = (not args.nostream))
+        if (args.verbose is True and args.nostream is True):
+            client.print_all()
         else:
-            client = ChatCompletionClientStream(args)
-            client.call(sentence)
-            client.print_stream()
+            client.print_result()
