@@ -13,8 +13,10 @@
 # limitations under the License.
 
 from ros2ai.api import add_global_arguments
-from ros2ai.api.openai import ChatCompletionClient
+from ros2ai.api.openai import ChatCompletionClient, ChatCompletionParameters
 from ros2ai.verb import VerbExtension
+
+import ros2ai.api.constants as constants
 
 class QueryVerb(VerbExtension):
     """Query a single completion to OpenAI API."""
@@ -44,9 +46,16 @@ class QueryVerb(VerbExtension):
             sentence = " ".join(args.questions)
         if (sentence == ''):
             print('Dont be shy, put some questions! (I am not AI)') 
-        
+
+        user_messages = [
+            {"role": "system", "content": f"{constants.ROLE_SYSTEM_QUERY_DEFAULT}"},
+            {"role": "user", "content": f"{sentence}"}
+        ]
+
+        completion_params = ChatCompletionParameters(
+            messages = user_messages, stream = (not args.nostream))
         client = ChatCompletionClient(args)
-        client.call(sentence, stream = (not args.nostream))
+        client.call(completion_params)
         if (args.verbose is True and args.nostream is True):
             client.print_all()
         else:

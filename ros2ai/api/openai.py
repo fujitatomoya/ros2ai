@@ -31,18 +31,13 @@ class ChatCompletionClient(OpenAiConfig):
         self.completion_ = None
         self.stream_ = True
 
-    def call(self, sentence, stream=True):
-        self.stream_ = stream
+    def call(self, parameteters):
+        self.stream_ = parameteters.stream
         try:
             self.completion_ = self.client_.chat.completions.create(
-                model=self.get_value('api_model'),
-                messages=[
-                    {
-                        "role": "user",
-                        "content": f"{sentence}",
-                    },
-                ],
-                stream=self.stream_,
+                model = self.get_value('api_model'),
+                messages = parameteters.messages,
+                stream = parameteters.stream,
                 max_tokens=self.get_value('api_token')
 
             )
@@ -69,3 +64,37 @@ class ChatCompletionClient(OpenAiConfig):
     def print_all(self):
         if self.stream_ is False:
             print(self.completion_)
+
+class ChatCompletionParameters:
+    """
+    Create chat completion client parameters.
+    """
+    def __init__(self, messages = [], stream = True):
+        self.messages_ = messages
+        self.stream_ = stream
+
+    @property
+    def stream(self):
+        """Getter method for the streaming mode property."""
+        return self.stream_
+
+    @stream.setter
+    def stream(self, flag):
+        """Setter method for the streaming mode property."""
+        if isinstance(flag, bool):
+            self.stream_ = flag
+        else:
+            raise ValueError("stream must be a bool.")
+
+    @property
+    def messages(self):
+        """Getter method for the messages list property."""
+        return self.messages_
+
+    @messages.setter
+    def messages(self, messages):
+        """Setter method for the messages list property."""
+        if isinstance(messages, list):
+            self.messages_ = messages
+        else:
+            raise ValueError("messages must be a list.")

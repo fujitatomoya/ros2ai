@@ -19,3 +19,11 @@ ROS_OPENAI_MODEL_NAME_ENV_VAR = 'OPENAI_MODEL_NAME'
 
 ROS_OPENAI_DEFAULT_ENDPOINT = 'https://api.openai.com/v1'
 ROS_OPENAI_ENDPOINT_ENV_VAR = 'OPENAI_ENDPOINT'
+
+# The system message helps set the behavior of the assistant.
+# For example, you can modify the personality of the assistant or provide specific
+# instructions about how it should behave throughout the conversation.
+# However note that the system message is optional and the model’s behavior without a system message
+# is likely to be similar to using a generic message such as "You are a helpful assistant."
+# TODO@fujitatomoya: ROS_DISTRO would be better to assistant setting.
+ROLE_SYSTEM_QUERY_DEFAULT = 'You are a ROS 2 helpful assistant.'
