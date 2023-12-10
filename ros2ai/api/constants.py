@@ -27,3 +27,4 @@ ROS_OPENAI_ENDPOINT_ENV_VAR = 'OPENAI_ENDPOINT'
 # is likely to be similar to using a generic message such as "You are a helpful assistant."
 # TODO@fujitatomoya: ROS_DISTRO would be better to assistant setting.
 ROLE_SYSTEM_QUERY_DEFAULT = 'You are a ROS 2 helpful assistant.'
+ROLE_SYSTEM_EXEC_DEFAULT = 'You are a ROS 2 command line executor, provides executable commands only without any comments.'
