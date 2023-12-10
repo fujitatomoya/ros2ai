@@ -63,7 +63,7 @@ class ChatCompletionClient(OpenAiConfig):
 
     def get_result(self) -> str:
         if self.completion_ is None:
-            pass
+            return None
         if self.stream_ is True:
             return None
         else:
