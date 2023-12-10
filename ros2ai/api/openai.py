@@ -61,6 +61,17 @@ class ChatCompletionClient(OpenAiConfig):
             else:
                 print(self.completion_.choices[0].message.content)
 
+    def get_result(self) -> str:
+        if self.completion_ is None:
+            return None
+        if self.stream_ is True:
+            return None
+        else:
+            if (self.completion_.choices[0].finish_reason != 'stop'):
+                return None
+            else:
+                return self.completion_.choices[0].message.content
+
     def print_all(self):
         if self.stream_ is False:
             print(self.completion_)
