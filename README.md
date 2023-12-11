@@ -40,7 +40,7 @@ https://github.com/fujitatomoya/ros2ai/assets/43395114/78a0799b-40e3-4dc8-99cb-4
 pip install openai
 ```
 
-> [!TODO@fujitatomoya]
+> [!NOTE]
 > Should have all required packages described in [package.xml](./package.xml)
 
 ### Build
@@ -66,7 +66,7 @@ colcon build --symlink-install --packages-select ros2ai
 export OPENAI_API_KEY='your-api-key-here'
 ```
 
-> [!TODO@fujitatomoya]
+> [!NOTE]
 > There are more tuning parameters and environmental variables to be described.
 
 ### Examples
