@@ -13,7 +13,7 @@
 
 See how it works 🔥
 
-
+https://github.com/fujitatomoya/ros2ai/assets/43395114/78a0799b-40e3-4dc8-99cb-488994e94769
 
 ## Platform
 
