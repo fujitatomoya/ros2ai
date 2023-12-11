@@ -13,8 +13,7 @@
 
 See how it works 🔥
 
-- `query` english and japanese(multi-lang support)
-- `execute` english and japanese(multi-lang support)
+
 
 ## Platform
 
@@ -88,7 +87,7 @@ As an artificial intelligence, I do not have a physical presence, so I can't be 
 - `query` to ask any questions to ROS 2 assistant.
 
 ```bash
-root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai query "Tell me how to check the avaliable topics?"
+root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai query "Tell me how to check the available topics?"
 To check the available topics in ROS 2, you can use the following command in the terminal:
 
 ---
