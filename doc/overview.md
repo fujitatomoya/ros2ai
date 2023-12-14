@@ -142,6 +142,12 @@ currently, `ros2ai` only supports single-shot completion API, that means we can 
 
 ---
 
+# Proxy Agent
+
+`ros2ai` can instantiate the agent daemon process as ROS 2 service, so that even other ROS 2 application running in the network can use OpenAI API via this proxy. those ROS 2 application can be agnostic from LLM specific APIs but ROS 2 service interface.
+
+---
+
 # Multiple LLM Support
 
 - create abstraction layer to absorb backend LLM APIs? could be local LLM on edge, could be other service backends that depends on the business logics.
