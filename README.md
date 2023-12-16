@@ -15,22 +15,16 @@ See how it works 🔥
 
 https://github.com/fujitatomoya/ros2ai/assets/43395114/78a0799b-40e3-4dc8-99cb-488994e94769
 
-## Platform
-
-### Operating System
-
-- [Ubuntu 22.04 Jammy Jellyfish](https://releases.ubuntu.com/jammy/)
-
-> [!IMPORTANT]
-> Verified on Ubuntu22.04 only, other platform would also work.
-
-### [ROS Distribution](https://docs.ros.org/en/rolling/Releases.html)
+## Supported [ROS Distribution](https://docs.ros.org/en/rolling/Releases.html)
 
 | Distribution      | Supported | Note |
 | :---------------- | :-------- | :--- |
 | Rolling Ridley    |    ✅     | Development / Mainstream Branch |
 | Iron Irwini       |    ⛔     | W.I.P (No distro specific dependency, should work.) |
 | Humble Hawksbill  |    ⛔     | W.I.P (No distro specific dependency, should work.) |
+
+> [!NOTE]
+> Verified on [Ubuntu 22.04 Jammy Jellyfish](https://releases.ubuntu.com/jammy/) only, other platform would also work.
 
 ## Installation
 
@@ -63,8 +57,19 @@ colcon build --symlink-install --packages-select ros2ai
 export OPENAI_API_KEY='your-api-key-here'
 ```
 
+> [!CAUTION]
+> Do not share or expose your OpenAI API key.
+
+#### Optional
+
+| environmental variable | default                     | Note                   |
+| :----------------------| :-------------------------- | :--------------------- |
+| OPENAI_MODEL_NAME      | 'gpt-4'                     | AI model to be used.   |
+| OPENAI_ENDPOINT        | 'https://api.openai.com/v1' | API endpoint URL.      |
+| OPENAI_TEMPERATURE     | 0.5                         | [OpenAI temperature](https://platform.openai.com/docs/guides/text-generation/how-should-i-set-the-temperature-parameter) |
+
 > [!NOTE]
-> There are more tuning parameters and environmental variables to be described.
+> These are optional environmental variables. if not set, default value will be used.
 
 ### Examples
 
