@@ -38,6 +38,7 @@ class ChatCompletionClient(OpenAiConfig):
                 model = self.get_value('api_model'),
                 messages = parameteters.messages,
                 stream = parameteters.stream,
+                temperature = self.get_value('api_temperature'),
                 max_tokens=self.get_value('api_token')
 
             )

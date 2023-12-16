@@ -66,6 +66,18 @@ def get_endpoint_url() -> str:
     else:
         return url
 
+def get_temperature() -> float:
+    """
+    Get temperature parameter to be used with OpenAI API.
+
+    :return: temperature, could be None.
+    """
+    temperature = os.environ.get(constants.ROS_OPENAI_TEMPERATURE_ENV_VAR)
+    if not temperature:
+        return float(constants.ROS_OPENAI_DEFAULT_TEMPERATURE)
+    else:
+        return float(temperature)
+
 class OpenAiConfig:
     """
     Collect all OpenAI API related configuration from user setting as key-value pair.
@@ -88,6 +100,9 @@ class OpenAiConfig:
 
         # api token is optional, only available via command line argument
         self.config_pair['api_token'] = args.token
+
+        # temperature is optional, only available via environmental variable
+        self.config_pair['api_temperature'] = get_temperature()
 
     def set_value(self, key, value):
         # Set a key-value pair
@@ -116,14 +131,15 @@ class OpenAiConfig:
         )
         try:
             completion = client.chat.completions.create(
-                model=self.get_value('api_model'),
-                messages=[
+                model = self.get_value('api_model'),
+                messages = [
                     {
                         "role": "user",
                         "content": "Are you in service?",
                     },
                 ],
-                max_tokens=self.get_value('api_token')
+                temperature = self.get_value('api_temperature'),
+                max_tokens = self.get_value('api_token')
             )
         except Exception as e:
             print('Failed to call OpenAI API: ' + str(e))
