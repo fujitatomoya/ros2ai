@@ -40,9 +40,6 @@ https://github.com/fujitatomoya/ros2ai/assets/43395114/78a0799b-40e3-4dc8-99cb-4
 pip install openai
 ```
 
-> [!NOTE]
-> Should have all required packages described in [package.xml](./package.xml)
-
 ### Build
 
 No released package is available, needs to be build in colcon workspace.

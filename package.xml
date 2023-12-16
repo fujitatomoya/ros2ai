@@ -13,11 +13,8 @@
 
   <author email="tomoya.fujita825@gmail.com">Tomoya Fujita</author>
 
-  <exec_depend>python3-numpy</exec_depend>
-  <exec_depend>python3-yaml</exec_depend>
-  <exec_depend>rclpy</exec_depend>
+  <exec_depend>openai</exec_depend>
   <exec_depend>ros2cli</exec_depend>
-  <exec_depend>rosidl_runtime_py</exec_depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
@@ -30,7 +27,6 @@
   <test_depend>launch_testing_ros</test_depend>
   <test_depend>python3-pytest</test_depend>
   <test_depend>python3-pytest-timeout</test_depend>
-  <test_depend>rosgraph_msgs</test_depend>
   <test_depend>std_msgs</test_depend>
   <test_depend>test_msgs</test_depend>
 

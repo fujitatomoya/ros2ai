@@ -39,8 +39,7 @@ class ChatCompletionClient(OpenAiConfig):
                 messages = parameteters.messages,
                 stream = parameteters.stream,
                 temperature = self.get_value('api_temperature'),
-                max_tokens=self.get_value('api_token')
-
+                max_tokens = self.get_value('api_token')
             )
         except Exception as e:
             print('Failed to call OpenAI API: ' + str(e))
