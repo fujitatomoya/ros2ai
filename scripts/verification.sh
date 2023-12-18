@@ -1,0 +1,94 @@
+#!/bin/bash
+
+#####################################################################
+# This script verifies ros2ai on the localhost system.
+#
+# Localhost could be physical machine or container runtime environment,
+# this script is agnostic from the system but just checks if ros2ai
+# works okay with accessing the LLM API endpoints.
+#####################################################################
+
+################
+# User Setting #
+################
+
+# ROS setting should be done before calling this scripts, fallking back to defaults.
+ROS_VERSION="${ROS_VERSION:-2}"
+ROS_PYTHON_VERSION="${ROS_PYTHON_VERSION:-3}"
+ROS_AUTOMATIC_DISCOVERY_RANGE="${ROS_AUTOMATIC_DISCOVERY_RANGE:-SUBNET}"
+ROS_DISTRO="${ROS_DISTRO:-rolling}"
+
+# update this list to local verification
+# CAUTION: BE ADVISED THAT THIS WILL USE YOUR API KEY.
+command_list=(
+    "ros2 ai"
+    "ros2 ai -h"
+    "ros2 ai status -h"
+    "ros2 ai status"
+    "ros2 ai status -vl"
+    "ros2 ai query -h"
+    "ros2 ai query \"say hello\""
+    "ros2 ai query \"say hello\" -nv"
+    "ros2 ai query \"say hello\" -m gpt-3.5-turbo -u https://api.openai.com/v1 -t 100"
+    "ros2 ai exec \"give me all topics\""
+    "ros2 ai exec \"give me all topics\" -d"
+)
+
+########################
+# Function Definitions #
+########################
+
+function exit_trap() {
+    if [ $? != 0 ]; then
+        echo "Command [$BASH_COMMAND] is failed"
+        exit 1
+    fi
+}
+
+function command_exist() {
+    trap exit_trap ERR
+    echo "[${FUNCNAME[0]}]: checking $1 command exists."
+    if command -v "$1" >/dev/null 2>&1; then
+        echo "$1 exists."
+        return 0
+    else
+        echo "Error: $1 not found."
+        return 1
+    fi
+}
+
+function check_user_setting () {
+    trap exit_trap ERR
+    echo "[${FUNCNAME[0]}]: checking user setting and configuration."
+    # check if API key is set
+    if [ -z "$OPENAI_API_KEY" ]; then
+        echo "OPENAI_API_KEY is not set."
+        exit 1
+    fi
+    # check if ros2 envirnoment setting (trap function can catch the error)
+    ros2
+}
+
+function verify_ros2ai() {
+    trap exit_trap ERR
+    echo "[${FUNCNAME[0]}]: verifying ros2ai."
+    # execute all commands in the list
+    for command in "${command_list[@]}"; do
+        #echo "----- $command"
+        eval $command
+    done
+    echo "----- all ros2ai commands return successfully!!! -----"
+}
+
+########
+# Main #
+########
+
+# set the trap on error
+trap exit_trap ERR
+
+# call verification sequence
+check_user_setting
+verify_ros2ai
+
+exit 0

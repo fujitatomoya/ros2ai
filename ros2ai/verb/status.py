@@ -56,8 +56,11 @@ class StatusVerb(VerbExtension):
             print("[SUCCESS] Valid OpenAI API key.")
         else:
             print("[FAILURE] Invalid OpenAI API key.")
+            return 1
 
         if (args.list is True):
             print("Available Models:")
             for model in model_list:
                 print(model)
+
+        return 0
