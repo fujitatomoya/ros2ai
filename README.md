@@ -1,3 +1,5 @@
+[![humble](https://github.com/fujitatomoya/ros2ai/actions/workflows/humble.yml/badge.svg)](https://github.com/fujitatomoya/ros2ai/actions/workflows/humble.yml) [![iron](https://github.com/fujitatomoya/ros2ai/actions/workflows/iron.yml/badge.svg)](https://github.com/fujitatomoya/ros2ai/actions/workflows/iron.yml) [![rolling](https://github.com/fujitatomoya/ros2ai/actions/workflows/rolling.yml/badge.svg)](https://github.com/fujitatomoya/ros2ai/actions/workflows/rolling.yml)
+
 # ros2ai 🤖
 
 [ros2ai](https://github.com/fujitatomoya/ros2ai) is a <span style="color:red">next-generation</span> [ROS 2](https://github.com/ros2) command line interface extension with [OpenAI](https://openai.com/)
