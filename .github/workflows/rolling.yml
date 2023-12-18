@@ -32,4 +32,4 @@ jobs:
       - name: Build with ROS rolling
         shell: bash
         run: |
-          ./scripts/verification.sh
+          ./scripts/github_workflows.sh
