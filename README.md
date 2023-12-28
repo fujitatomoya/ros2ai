@@ -24,13 +24,24 @@ https://github.com/fujitatomoya/ros2ai/assets/43395114/78a0799b-40e3-4dc8-99cb-4
 | Distribution      | Supported | Note |
 | :---------------- | :-------- | :--- |
 | Rolling Ridley    |    ✅     | Development / Mainstream Branch |
-| Iron Irwini       |    ⛔     | W.I.P (No distro specific dependency, should work.) |
-| Humble Hawksbill  |    ⛔     | W.I.P (No distro specific dependency, should work.) |
+| Iron Irwini       |    ✅     | |
+| Humble Hawksbill  |    ✅     | |
 
 > [!NOTE]
 > Verified on [Ubuntu 22.04 Jammy Jellyfish](https://releases.ubuntu.com/jammy/) only, other platform would also work.
 
 ## Installation
+
+### Docker Container
+
+see available images for [tomoyafujita/ros2ai@dockerhub](https://hub.docker.com/repository/docker/tomoyafujita/ros2ai/tags?page=1&ordering=last_updated)
+
+```bash
+docker run -it --rm -e OPENAI_API_KEY=$OPENAI_API_KEY tomoyafujita/ros2ai:humble
+```
+
+> [!NOTE]
+> `OPENAI_API_KEY` environmental variable must be set
 
 ### Required Package
 
