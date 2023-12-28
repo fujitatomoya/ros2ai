@@ -43,6 +43,8 @@ docker run -it --rm -e OPENAI_API_KEY=$OPENAI_API_KEY tomoyafujita/ros2ai:humble
 > [!NOTE]
 > `OPENAI_API_KEY` environmental variable must be set
 
+https://github.com/fujitatomoya/ros2ai/assets/43395114/2af4fd44-2ccf-472c-9153-c3c19987dc96
+
 ### Required Package
 
 ```bash
