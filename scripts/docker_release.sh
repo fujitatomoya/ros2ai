@@ -60,11 +60,11 @@ function command_exist() {
     trap exit_trap ERR
     echo "[${FUNCNAME[0]}]: checking $1 command exists."
     if command -v "$1" >/dev/null 2>&1; then
-        echo "$1 exists."
-        return 0
-    else
         echo "Error: $1 not found."
         return 1
+    else
+        echo "$1 exists."
+        return 0
     fi
 }
 
@@ -129,7 +129,9 @@ shift $((OPTIND-1))
 
 # check settings
 check_dockerhub_setting
-command_exist docker
+if command_exist docker; then
+    exit 1
+fi
 
 # building images
 if [ "$build_image" = true ]; then

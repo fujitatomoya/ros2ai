@@ -45,18 +45,6 @@ function exit_trap() {
     fi
 }
 
-function command_exist() {
-    trap exit_trap ERR
-    echo "[${FUNCNAME[0]}]: checking $1 command exists."
-    if command -v "$1" >/dev/null 2>&1; then
-        echo "$1 exists."
-        return 0
-    else
-        echo "Error: $1 not found."
-        return 1
-    fi
-}
-
 function check_user_setting () {
     trap exit_trap ERR
     echo "[${FUNCNAME[0]}]: checking user setting and configuration."
