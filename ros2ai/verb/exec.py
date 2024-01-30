@@ -15,6 +15,7 @@
 from ros2ai.api import add_global_arguments
 from ros2ai.api.utils import run_executable
 from ros2ai.api.openai import ChatCompletionClient, ChatCompletionParameters
+from ros2ai.api.utils import get_ros_distro
 from ros2ai.verb import VerbExtension
 
 import ros2ai.api.constants as constants
@@ -43,8 +44,12 @@ class ExecVerb(VerbExtension):
         if (request == ''):
             print('Please insert your request! (I am not AI)')
 
+        distro = get_ros_distro()
+        if distro is None:
+            distro = 'rolling' # fallback to rolling in default
+        system_role = constants.ROLE_SYSTEM_EXEC_DEFAULT.format(distro)
         user_request = [
-            {"role": "system", "content": f"{constants.ROLE_SYSTEM_EXEC_DEFAULT}"},
+            {"role": "system", "content": f"{system_role}"},
             {"role": "user", "content": f"{request}"}
         ]
 

@@ -14,6 +14,7 @@
 
 import signal
 import subprocess
+import os
 
 def run_command(*, command, argv = None, prefix = None):
     """
@@ -56,3 +57,15 @@ def run_executable(*, command, argv = None, prefix=None):
         if -process.returncode in signal.valid_signals():
             print(signal.strsignal(-process.returncode))
     return process.returncode
+
+def get_ros_distro() -> str:
+    """
+    Fetch ROS_DISTRO environmental variable.
+
+    :return: string of distribution name.
+    """
+    distro = os.environ.get('ROS_DISTRO')
+    if not distro:
+        print('ROS_DISTRO env value is not set.')
+        return None
+    return distro.lower()
