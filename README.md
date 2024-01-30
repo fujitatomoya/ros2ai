@@ -154,6 +154,8 @@ ros2 param list /node_name
 
 ## Reference
 
+[![Watch the video](https://img.youtube.com/vi/60IOU1KrWXY/maxresdefault.jpg)](https://www.youtube.com/watch?v=60IOU1KrWXY)
+
 - [OpenAI API documentation](https://platform.openai.com/docs)
 - [OpenAI Python API](https://github.com/openai/openai-python)
 
