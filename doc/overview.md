@@ -137,7 +137,7 @@ i believe that is exactly where AI comes to play. instead of paying the resource
 
 - more stable AI behavior.
 - cost(token) and latency.
-- ROS 2 distribution awareness. (should be fetched by ros2ai but user setting.)
+- ~~ROS 2 distribution awareness. (should be fetched by ros2ai but user setting.)~~
 - more...
 
 ---
