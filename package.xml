@@ -13,7 +13,7 @@
 
   <author email="tomoya.fujita825@gmail.com">Tomoya Fujita</author>
 
-  <exec_depend>openai</exec_depend>
+  <exec_depend>python3-openai-pip</exec_depend>
   <exec_depend>ros2cli</exec_depend>
 
   <test_depend>ament_copyright</test_depend>
