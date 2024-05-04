@@ -33,7 +33,7 @@ function install_prerequisites () {
     apt update && apt upgrade -y
     # TODO@fujitatomoya: should install openai via package.xml
     apt install -y pip
-    pip install openai
+    pip install openai --break-system-packages
     #apt install -y ros-${ROS_DISTRO}-desktop --no-install-recommends
     cd $there
 }
