@@ -47,8 +47,8 @@ https://github.com/fujitatomoya/ros2ai/assets/43395114/2af4fd44-2ccf-472c-9153-c
 
 ### Required Package
 
-<!--- begin-tab-group --->
-<!--- tab-title=rolling / jazzy --->
+- `rolling` / `jazzy`
+
 ```bash
 pip install openai --break-system-packages
 ```
@@ -56,11 +56,11 @@ pip install openai --break-system-packages
 > [!NOTE]
 > see [PEP 668 – Marking Python base environments as “externally managed”](PEP 668 – Marking Python base environments as “externally managed”) why `--break-system-packages` is required.
 
-<!--- tab-title=iron / humble --->
+- `iron` / `humble`
+
 ```bash
 pip install openai
 ```
-<!--- end-tab-group --->
 
 ### Build
 
