@@ -36,7 +36,15 @@ RUN apt-get update \
     pip curl\
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
-RUN pip install openai
+
+# Adapt pip install option based on distro (technically ubuntu version)
+RUN if [ "$ROS_DISTRO" = "humble" ]; then \
+        pip install openai; \
+    elif [ "$ROS_DISTRO" = "iron" ]; then \
+        pip install openai; \
+    else \
+        pip install openai --break-system-packages; \
+    fi
 
 # Build and source colcon workspace
 RUN cd $COLCON_WS \
