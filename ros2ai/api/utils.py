@@ -48,6 +48,19 @@ def run_executable(*, command, argv = None, prefix=None):
         command = prefix + command
 
     process = subprocess.Popen(command, shell = True)
+
+    # add signal handler for the parent process, so that we can finalize the child process
+    # child process could be `ros2 run` process and that also should pass the signal to
+    # executables running underneath. finally executables can handle the signals.
+    def signal_handler(sig, frame):
+        print('[ros2ai]:', 'Received signal: ', signal.strsignal(sig))
+        if process.poll() is None:
+            # If child process is running, forward the signal to it
+            process.send_signal(sig)
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
     while process.returncode is None:
         try:
             process.communicate()
