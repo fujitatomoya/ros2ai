@@ -92,7 +92,7 @@ export OPENAI_API_KEY='your-api-key-here'
 
 | environmental variable | default                     | Note                   |
 | :----------------------| :-------------------------- | :--------------------- |
-| OPENAI_MODEL_NAME      | 'gpt-4'                     | AI model to be used.   |
+| OPENAI_MODEL_NAME      | 'gpt-4o'                    | AI model to be used.   |
 | OPENAI_ENDPOINT        | 'https://api.openai.com/v1' | API endpoint URL.      |
 | OPENAI_TEMPERATURE     | 0.5                         | [OpenAI temperature](https://platform.openai.com/docs/guides/text-generation/how-should-i-set-the-temperature-parameter) |
 

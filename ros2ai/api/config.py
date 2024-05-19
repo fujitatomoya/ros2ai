@@ -40,7 +40,7 @@ def get_ai_model() -> str:
     """
     Get OpenAI Model from OPENAI_MODEL_NAME environment variable.
 
-    OpenAI Model is optional, in default to gpt-3.5-turbo
+    OpenAI Model is optional, in default to gpt-4o
 
     :return: string of OpenAI Model.
     """
