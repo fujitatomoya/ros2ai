@@ -127,8 +127,8 @@ done
 shift $((OPTIND-1))
 
 # check settings
-check_dockerhub_setting
 command_exist docker
+check_dockerhub_setting
 
 # building images
 if [ "$build_image" = true ]; then
