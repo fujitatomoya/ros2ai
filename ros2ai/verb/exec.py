@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from ros2ai.api import add_global_arguments
-from ros2ai.api.utils import run_executable
+from ros2ai.api.utils import run_executable, truncate_before_substring
 from ros2ai.api.openai import ChatCompletionClient, ChatCompletionParameters
 from ros2ai.api.utils import get_ros_distro
 from ros2ai.verb import VerbExtension
@@ -58,4 +58,6 @@ class ExecVerb(VerbExtension):
         client.call(completion_params)
         if (args.debug is True):
             client.print_all()
-        run_executable(command = client.get_result())
+        command_str = truncate_before_substring(
+            original = client.get_result(), substring = 'ros2')
+        run_executable(command = command_str)

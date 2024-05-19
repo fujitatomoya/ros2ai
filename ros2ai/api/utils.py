@@ -82,3 +82,30 @@ def get_ros_distro() -> str:
         print('ROS_DISTRO env value is not set.')
         return None
     return distro.lower()
+
+def truncate_before_substring(*, original, substring) -> str:
+    """
+    Truncates a string by removing anything before a specified substring,
+    and removes the newline character at the end if it exists.
+
+    :original: original string to be truncated.
+    :substring: substring before which the string should be truncated.
+    :return: string with anything before the specified substring removed,
+      or the original string if the substring is not found.
+    """
+    index = original.find(substring)
+    if index != -1:
+        # If found, truncate the string before the substring and return
+        truncated = original[index:]
+
+        # Find the index of newline character in the truncated text
+        newline_index = truncated.find('\n')
+        if newline_index != -1:
+            # If newline character exists, truncate the string after the newline character
+            truncated = truncated[:newline_index]
+
+        return truncated
+
+    else:
+        # If the substring is not found, return the original text
+        return original

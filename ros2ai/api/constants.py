@@ -14,7 +14,7 @@
 
 ROS_OPENAI_API_KEY_ENV_VAR = 'OPENAI_API_KEY'
 
-ROS_OPENAI_DEFAULT_MODEL = 'gpt-4'
+ROS_OPENAI_DEFAULT_MODEL = 'gpt-4o'
 ROS_OPENAI_MODEL_NAME_ENV_VAR = 'OPENAI_MODEL_NAME'
 
 ROS_OPENAI_DEFAULT_ENDPOINT = 'https://api.openai.com/v1'
@@ -31,7 +31,7 @@ ROLE_SYSTEM_QUERY_DEFAULT = \
     'professional assistant who can provide helpful answers against any questions.'
 ROLE_SYSTEM_EXEC_DEFAULT = \
     'You are a Robot Operating System 2 (as known as ROS2) {} distribution command line executor, ' \
-    'provides executable commands only without any comments.'
+    'provides executable command string only without any comments or code blocks.'
 
 # Temperature controls the consistency for behavior. (range 0.0 - 2.0)
 # The lower the temperature is, the more deterministic behavior that OpenAI does.
