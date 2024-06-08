@@ -43,7 +43,6 @@ setup(
             'status = ros2ai.verb.status:StatusVerb',
             'query = ros2ai.verb.query:QueryVerb',
             'exec = ros2ai.verb.exec:ExecVerb',
-#            'joke = ros2ai.verb.joke:JokeVerb',
         ],
     }
 )
