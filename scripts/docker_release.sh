@@ -14,6 +14,7 @@ COLCON_WS="${COLCON_WS:-/root/colcon_ws}"
 ros_distros=(
     "humble"
     "iron"
+    "jazzy"
     "rolling"
 )
 
@@ -137,6 +138,7 @@ fi
 
 # verifying images
 if [ "$verify_image" = true ]; then
+    # TODO@fujitatomoya: need to check if OPENAI_API_KEY env is set, otherwise return error
     verify_images
 fi
 

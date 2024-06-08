@@ -1,4 +1,4 @@
-[![humble](https://github.com/fujitatomoya/ros2ai/actions/workflows/humble.yml/badge.svg)](https://github.com/fujitatomoya/ros2ai/actions/workflows/humble.yml) [![iron](https://github.com/fujitatomoya/ros2ai/actions/workflows/iron.yml/badge.svg)](https://github.com/fujitatomoya/ros2ai/actions/workflows/iron.yml) [![rolling](https://github.com/fujitatomoya/ros2ai/actions/workflows/rolling.yml/badge.svg)](https://github.com/fujitatomoya/ros2ai/actions/workflows/rolling.yml)
+[![humble](https://github.com/fujitatomoya/ros2ai/actions/workflows/humble.yml/badge.svg)](https://github.com/fujitatomoya/ros2ai/actions/workflows/humble.yml) [![iron](https://github.com/fujitatomoya/ros2ai/actions/workflows/iron.yml/badge.svg)](https://github.com/fujitatomoya/ros2ai/actions/workflows/iron.yml) [![jazzy](https://github.com/fujitatomoya/ros2ai/actions/workflows/jazzy.yml/badge.svg)](https://github.com/fujitatomoya/ros2ai/actions/workflows/jazzy.yml) [![rolling](https://github.com/fujitatomoya/ros2ai/actions/workflows/rolling.yml/badge.svg)](https://github.com/fujitatomoya/ros2ai/actions/workflows/rolling.yml)
 
 # ros2ai 🤖
 
@@ -24,11 +24,9 @@ https://github.com/fujitatomoya/ros2ai/assets/43395114/78a0799b-40e3-4dc8-99cb-4
 | Distribution      | Supported | Note |
 | :---------------- | :-------- | :--- |
 | Rolling Ridley    |    ✅     | Development / Mainstream Branch |
+| Jazzy Jalisco     |    ✅     | |
 | Iron Irwini       |    ✅     | |
 | Humble Hawksbill  |    ✅     | |
-
-> [!NOTE]
-> Verified on [Ubuntu 22.04 Jammy Jellyfish](https://releases.ubuntu.com/jammy/) only, other platform would also work.
 
 ## Installation
 
