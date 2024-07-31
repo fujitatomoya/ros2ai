@@ -36,6 +36,10 @@ class ExecVerb(VerbExtension):
             '--debug',
             action='store_true',
             help='Prints detailed information and behavior of OpenAI (debug use only)')
+        parser.add_argument(
+            '--dry-run',
+            action='store_true',
+            help='Prints the command instead of executing it.')
 
     def main(self, *, args):
         request = ''
@@ -60,4 +64,7 @@ class ExecVerb(VerbExtension):
             client.print_all()
         command_str = truncate_before_substring(
             original = client.get_result(), substring = 'ros2')
-        run_executable(command = command_str)
+        if not args.dry_run:
+            run_executable(command = command_str)
+        else:
+            print(f"Command: '{command_str}'")
