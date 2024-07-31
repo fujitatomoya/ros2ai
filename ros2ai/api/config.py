@@ -122,7 +122,8 @@ class OpenAiConfig:
     def is_api_key_valid(self):
         # Validate api key, model and endpoint to post the API
         client = OpenAI(
-            api_key=self.get_value('api_key')
+            api_key=self.get_value('api_key'),
+            base_url=self.get_value('api_endpoint')
         )
         try:
             completion = client.chat.completions.create(

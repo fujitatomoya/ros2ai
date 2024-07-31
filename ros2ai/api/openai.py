@@ -26,7 +26,8 @@ class ChatCompletionClient(OpenAiConfig):
         super().__init__(args)
 
         self.client_ = OpenAI(
-            api_key=self.get_value('api_key')
+            api_key=self.get_value('api_key'),
+            base_url=self.get_value('api_endpoint')
         )
         self.completion_ = None
         self.stream_ = True
