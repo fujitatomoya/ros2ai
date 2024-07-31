@@ -28,13 +28,8 @@ def get_api_key() -> str:
     :return: string of OpenAI API Key.
     :raises: if OPENAI_API_KEY is not set.
     """
-    key_name = os.environ.get(constants.ROS_OPENAI_API_KEY_ENV_VAR)
-    if not key_name:
-        raise EnvironmentError(
-            f"'{constants.ROS_OPENAI_API_KEY_ENV_VAR}' environment variable is not set'"
-        )
-    else:
-        return key_name
+    key_name = os.environ.get(constants.ROS_OPENAI_API_KEY_ENV_VAR, "")
+    return key_name
 
 def get_ai_model() -> str:
     """
