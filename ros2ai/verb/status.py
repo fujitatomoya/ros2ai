@@ -54,7 +54,7 @@ class StatusVerb(VerbExtension):
         # try to list the all models via user configured api key
         headers = {"Authorization": "Bearer " + openai_config.get_value('api_key')}
         can_get_models, model_list = curl_get_request(
-            "https://api.openai.com/v1/models",
+            openai_config.get_value('api_endpoint') + "/models",
             headers
         )
 
