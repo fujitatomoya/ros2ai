@@ -85,12 +85,12 @@ class OpenAiConfig:
 
         # ai model is optional, command line argument prevails
         self.config_pair['api_model'] = get_ai_model()
-        if args.model != constants.ROS_OPENAI_DEFAULT_MODEL:
+        if args.model and args.model != self.config_pair['api_model']:
             self.config_pair['api_model'] = args.model
 
         # api endpoint is optional, command line argument prevails
         self.config_pair['api_endpoint'] = get_endpoint_url()
-        if args.url != constants.ROS_OPENAI_DEFAULT_MODEL:
+        if args.url and args.url != self.config_pair['api_endpoint']:
             self.config_pair['api_endpoint'] = args.url
 
         # api token is optional, only available via command line argument
