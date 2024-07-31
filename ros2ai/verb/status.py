@@ -45,7 +45,7 @@ class StatusVerb(VerbExtension):
         # try to call OpenAI API with user configured setting
         is_valid = openai_config.is_api_key_valid()
 
-        if is_valid:
+        if is_valid and args.verbose:
             print("[SUCCESS] Valid OpenAI API key.")
         else:
             print("[FAILURE] Invalid OpenAI API key.")
@@ -58,7 +58,7 @@ class StatusVerb(VerbExtension):
             headers
         )
 
-        if can_get_models:
+        if can_get_models and args.verbose:
             print("[SUCCESS] Retrieved list of models.")
         else:
             print("[FAILURE] Could not retrieved list of models.")
