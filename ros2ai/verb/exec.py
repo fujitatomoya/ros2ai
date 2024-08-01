@@ -13,12 +13,12 @@
 # limitations under the License.
 
 from ros2ai.api import add_global_arguments
-from ros2ai.api.utils import run_executable, truncate_before_substring
+from ros2ai.api.config import get_role_system
+from ros2ai.api.constants import ROLE_SYSTEM_EXEC_DEFAULT
 from ros2ai.api.openai import ChatCompletionClient, ChatCompletionParameters
-from ros2ai.api.utils import get_ros_distro
+from ros2ai.api.utils import get_ros_distro, run_executable, truncate_before_substring
 from ros2ai.verb import VerbExtension
 
-import ros2ai.api.constants as constants
 
 class ExecVerb(VerbExtension):
     """Execute a ROS 2 CLI based on user query to OpenAI API."""
@@ -40,6 +40,13 @@ class ExecVerb(VerbExtension):
             '--dry-run',
             action='store_true',
             help='Prints the command instead of executing it.')
+        parser.add_argument(
+            '-r',
+            '--role',
+            metavar='<role>',
+            type=str,
+            default=None,
+            help='Define the prompt\'s system role.')
 
     def main(self, *, args):
         request = ''
@@ -51,7 +58,10 @@ class ExecVerb(VerbExtension):
         distro = get_ros_distro()
         if distro is None:
             distro = 'rolling' # fallback to rolling in default
-        system_role = constants.ROLE_SYSTEM_EXEC_DEFAULT.format(distro)
+        system_role = get_role_system(default_role_system=ROLE_SYSTEM_EXEC_DEFAULT)
+        if args.role and args.role != system_role:
+            system_role = args.role
+        system_role = system_role.format(distro)
         user_request = [
             {"role": "system", "content": f"{system_role}"},
             {"role": "user", "content": f"{request}"}
@@ -62,6 +72,7 @@ class ExecVerb(VerbExtension):
         client.call(completion_params)
         if (args.debug is True):
             client.print_all()
+            print(f"System role:\n{system_role}")
         command_str = truncate_before_substring(
             original = client.get_result(), substring = 'ros2')
         if not args.dry_run:

@@ -73,6 +73,9 @@ def get_temperature() -> float:
     else:
         return float(temperature)
 
+def get_role_system(default_role_system: str = None) -> str:
+    return os.environ.get(constants.ROLE_SYSTEM_ENV_VAR, default_role_system)
+
 class OpenAiConfig:
     """
     Collect all OpenAI API related configuration from user setting as key-value pair.

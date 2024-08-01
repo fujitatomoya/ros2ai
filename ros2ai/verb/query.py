@@ -13,11 +13,12 @@
 # limitations under the License.
 
 from ros2ai.api import add_global_arguments
+from ros2ai.api.config import get_role_system
+from ros2ai.api.constants import ROLE_SYSTEM_QUERY_DEFAULT
 from ros2ai.api.openai import ChatCompletionClient, ChatCompletionParameters
 from ros2ai.api.utils import get_ros_distro
 from ros2ai.verb import VerbExtension
 
-import ros2ai.api.constants as constants
 
 class QueryVerb(VerbExtension):
     """Query a single completion to OpenAI API."""
@@ -40,6 +41,13 @@ class QueryVerb(VerbExtension):
             '--verbose',
             action='store_true',
             help='Prints detailed response information (only available with nostream option)')
+        parser.add_argument(
+            '-r',
+            '--role',
+            metavar='<role>',
+            type=str,
+            default=None,
+            help='Define the prompt\'s system role.')
 
     def main(self, *, args):
         sentence = ''
@@ -51,7 +59,10 @@ class QueryVerb(VerbExtension):
         distro = get_ros_distro()
         if distro is None:
             distro = 'rolling' # fallback to rolling in default
-        system_role = constants.ROLE_SYSTEM_QUERY_DEFAULT.format(distro)
+        system_role = get_role_system(default_role_system=ROLE_SYSTEM_QUERY_DEFAULT)
+        if args.role and args.role != system_role:
+            system_role = args.role
+        system_role = system_role.format(distro)
         user_messages = [
             {"role": "system", "content": f"{system_role}"},
             {"role": "user", "content": f"{sentence}"}
@@ -63,5 +74,6 @@ class QueryVerb(VerbExtension):
         client.call(completion_params)
         if (args.verbose is True and args.nostream is True):
             client.print_all()
+            print(f"System role:\n{system_role}")
         else:
             client.print_result()
