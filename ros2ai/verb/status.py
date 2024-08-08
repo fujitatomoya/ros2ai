@@ -45,17 +45,25 @@ class StatusVerb(VerbExtension):
         # try to call OpenAI API with user configured setting
         is_valid = openai_config.is_api_key_valid()
 
+        if is_valid:
+            if args.verbose:
+                print("[SUCCESS] Valid OpenAI API key.")
+        else:
+            print("[FAILURE] Invalid OpenAI API key.")
+            return 1
+
         # try to list the all models via user configured api key
         headers = {"Authorization": "Bearer " + openai_config.get_value('api_key')}
         can_get_models, model_list = curl_get_request(
-            "https://api.openai.com/v1/models",
+            openai_config.get_value('api_endpoint') + "/models",
             headers
         )
 
-        if is_valid and can_get_models:
-            print("[SUCCESS] Valid OpenAI API key.")
+        if can_get_models:
+            if args.verbose:
+                print("[SUCCESS] Retrieved list of models.")
         else:
-            print("[FAILURE] Invalid OpenAI API key.")
+            print("[FAILURE] Could not retrieved list of models.")
             return 1
 
         if (args.list is True):

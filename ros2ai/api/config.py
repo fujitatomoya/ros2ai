@@ -28,13 +28,8 @@ def get_api_key() -> str:
     :return: string of OpenAI API Key.
     :raises: if OPENAI_API_KEY is not set.
     """
-    key_name = os.environ.get(constants.ROS_OPENAI_API_KEY_ENV_VAR)
-    if not key_name:
-        raise EnvironmentError(
-            f"'{constants.ROS_OPENAI_API_KEY_ENV_VAR}' environment variable is not set'"
-        )
-    else:
-        return key_name
+    key_name = os.environ.get(constants.ROS_OPENAI_API_KEY_ENV_VAR, "None")
+    return key_name
 
 def get_ai_model() -> str:
     """
@@ -78,6 +73,9 @@ def get_temperature() -> float:
     else:
         return float(temperature)
 
+def get_role_system(default_role_system: str = None) -> str:
+    return os.environ.get(constants.ROLE_SYSTEM_ENV_VAR, default_role_system)
+
 class OpenAiConfig:
     """
     Collect all OpenAI API related configuration from user setting as key-value pair.
@@ -90,12 +88,12 @@ class OpenAiConfig:
 
         # ai model is optional, command line argument prevails
         self.config_pair['api_model'] = get_ai_model()
-        if args.model != constants.ROS_OPENAI_DEFAULT_MODEL:
+        if args.model and args.model != self.config_pair['api_model']:
             self.config_pair['api_model'] = args.model
 
         # api endpoint is optional, command line argument prevails
         self.config_pair['api_endpoint'] = get_endpoint_url()
-        if args.url != constants.ROS_OPENAI_DEFAULT_MODEL:
+        if args.url and args.url != self.config_pair['api_endpoint']:
             self.config_pair['api_endpoint'] = args.url
 
         # api token is optional, only available via command line argument
@@ -127,7 +125,8 @@ class OpenAiConfig:
     def is_api_key_valid(self):
         # Validate api key, model and endpoint to post the API
         client = OpenAI(
-            api_key=self.get_value('api_key')
+            api_key=self.get_value('api_key'),
+            base_url=self.get_value('api_endpoint')
         )
         try:
             completion = client.chat.completions.create(
