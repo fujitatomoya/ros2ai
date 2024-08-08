@@ -62,7 +62,7 @@ function verify_ros2ai() {
     echo "[${FUNCNAME[0]}]: verifying ros2ai."
     # execute all commands in the list
     for command in "${command_list[@]}"; do
-        #echo "----- $command"
+        echo "----- $command"
         eval $command
     done
     echo "----- all ros2ai commands return successfully!!! -----"
