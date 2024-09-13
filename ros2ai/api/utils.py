@@ -79,8 +79,8 @@ def get_ros_distro() -> str:
     """
     distro = os.environ.get('ROS_DISTRO')
     if not distro:
-        print('ROS_DISTRO env value is not set.')
-        return None
+        print('ROS_DISTRO env value is not set, use rolling')
+        return 'rolling'
     return distro.lower()
 
 def truncate_before_substring(*, original, substring) -> str:
