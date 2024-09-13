@@ -12,13 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# This is only required for OpenAI API call
+# If this is set, it falls back to call OpenAI API gracefully.
 ROS_OPENAI_API_KEY_ENV_VAR = 'OPENAI_API_KEY'
 
 ROS_OPENAI_DEFAULT_MODEL = 'gpt-4o'
-ROS_OPENAI_MODEL_NAME_ENV_VAR = 'OPENAI_MODEL_NAME'
+ROS_OLLAMA_DEFAULT_MODEL = 'llama3.1'
+
+ROS_AI_MODEL_NAME_ENV_VAR = 'AI_MODEL_NAME'
+ROS_AI_ENDPOINT_ENV_VAR = 'AI_ENDPOINT'
 
 ROS_OPENAI_DEFAULT_ENDPOINT = 'https://api.openai.com/v1'
-ROS_OPENAI_ENDPOINT_ENV_VAR = 'OPENAI_ENDPOINT'
+ROS_OLLAMA_DEFAULT_ENDPOINT = 'http://localhost:11434'
+ROS_OLLAMA_OPENAI_ENDPOINT = 'http://localhost:11434/v1'
 
 # The system message helps set the behavior of the assistant.
 # For example, you can modify the personality of the assistant or provide specific
@@ -32,11 +38,11 @@ ROLE_SYSTEM_QUERY_DEFAULT = \
 ROLE_SYSTEM_EXEC_DEFAULT = \
     'You are a Robot Operating System 2 (as known as ROS2) {} distribution command line executor, ' \
     'provides executable command string only without any comments or code blocks.'
-ROLE_SYSTEM_ENV_VAR = 'OPENAI_ROLE_SYSTEM'
+ROLE_SYSTEM_ENV_VAR = 'AI_ROLE_SYSTEM'
 
 # Temperature controls the consistency for behavior. (range 0.0 - 2.0)
-# The lower the temperature is, the more deterministic behavior that OpenAI does.
-# The higher temperature is, the more creative OpenAI can be.
+# The lower the temperature is, the more deterministic behavior that AI does.
+# The higher temperature is, the more creative AI can be.
 # Temperature value based on the desired trade-off between coherence and creativity.
-ROS_OPENAI_DEFAULT_TEMPERATURE = 0.5
-ROS_OPENAI_TEMPERATURE_ENV_VAR = 'OPENAI_TEMPERATURE'
+ROS_AI_DEFAULT_TEMPERATURE = 0.5
+ROS_AI_TEMPERATURE_ENV_VAR = 'AI_TEMPERATURE'

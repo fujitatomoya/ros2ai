@@ -40,6 +40,7 @@ function print_usage() {
 }
 
 function exit_trap() {
+    # shellcheck disable=SC2317  # Don't warn about unreachable commands in this function
     if [ $? != 0 ]; then
         echo "Command [$BASH_COMMAND] is failed"
         exit 1
@@ -138,6 +139,7 @@ fi
 
 # verifying images
 if [ "$verify_image" = true ]; then
+    # TODO@fujitatomoya: need to check if ollama system service is running
     # TODO@fujitatomoya: need to check if OPENAI_API_KEY env is set, otherwise return error
     verify_images
 fi

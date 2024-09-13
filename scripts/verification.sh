@@ -40,6 +40,7 @@ command_list=(
 ########################
 
 function exit_trap() {
+    # shellcheck disable=SC2317  # Don't warn about unreachable commands in this function
     if [ $? != 0 ]; then
         echo "Command [$BASH_COMMAND] is failed"
         exit 1
@@ -50,6 +51,10 @@ function check_user_setting () {
     trap exit_trap ERR
     echo "[${FUNCNAME[0]}]: checking user setting and configuration."
     # check if API key is set
+    # TODO(@fujitatomoya): this setting will not be mandatory once ollma supported.
+    #  instead, print the warning message to tell that OpenAI API key is not set.
+    #  as integration test, this needs to be able to verify ollama and OpenAI,
+    #  so probably we can have 2 modes (at least 1 model for each) for the test.
     if [ -z "$OPENAI_API_KEY" ]; then
         echo "OPENAI_API_KEY is not set."
         exit 1

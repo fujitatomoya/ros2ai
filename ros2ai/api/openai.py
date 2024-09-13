@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ros2ai.api.config import OpenAiConfig
+from ros2ai.api.config import AiConfig
 
 from openai import OpenAI
 
 
-class ChatCompletionClient(OpenAiConfig):
+class ChatCompletionClient(AiConfig):
     """
     Create single chat completion client w/o session and call OpenAI.
     """
