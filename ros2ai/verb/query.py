@@ -57,8 +57,6 @@ class QueryVerb(VerbExtension):
             print('Dont be shy, put some questions! (I am not AI)') 
 
         distro = get_ros_distro()
-        if distro is None:
-            distro = 'rolling' # fallback to rolling in default
         system_role = get_role_system(default_role_system=ROLE_SYSTEM_QUERY_DEFAULT)
         if args.role and args.role != system_role:
             system_role = args.role

@@ -29,7 +29,7 @@ command_list=(
     "ros2 ai query -h"
     "ros2 ai query \"say hello\""
     "ros2 ai query \"say hello\" -nv"
-    "ros2 ai query \"say hello\" -m gpt-3.5-turbo -u https://api.openai.com/v1 -t 100"
+    "ros2 ai query \"say hello\" -m llama3.1 -u http://localhost:11434/v1 -t 1000"
     "ros2 ai exec \"give me all topics\""
     "ros2 ai exec \"give me all topics\" --dry-run"
     "ros2 ai exec \"give me all topics\" -d"
@@ -40,6 +40,7 @@ command_list=(
 ########################
 
 function exit_trap() {
+    # shellcheck disable=SC2317  # Don't warn about unreachable commands in this function
     if [ $? != 0 ]; then
         echo "Command [$BASH_COMMAND] is failed"
         exit 1
@@ -49,10 +50,8 @@ function exit_trap() {
 function check_user_setting () {
     trap exit_trap ERR
     echo "[${FUNCNAME[0]}]: checking user setting and configuration."
-    # check if API key is set
     if [ -z "$OPENAI_API_KEY" ]; then
-        echo "OPENAI_API_KEY is not set."
-        exit 1
+        echo "OPENAI_API_KEY is not set, if accessing OpenAI it will fail to call API."
     fi
     # check if ros2 envirnoment setting (trap function can catch the error)
     ros2

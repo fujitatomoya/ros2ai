@@ -23,10 +23,7 @@ def get_api_key() -> str:
     """
     Get OpenAI API Key from OPENAI_API_KEY environment variable.
 
-    OpenAI API Key must be set by ros2ai user with OPENAI_API_KEY environment variable.
-
-    :return: string of OpenAI API Key.
-    :raises: if OPENAI_API_KEY is not set.
+    :return: string of OpenAI API Key otherwise return None.
     """
     key_name = os.environ.get(constants.ROS_OPENAI_API_KEY_ENV_VAR, "None")
     return key_name
@@ -35,13 +32,11 @@ def get_ai_model() -> str:
     """
     Get OpenAI Model from OPENAI_MODEL_NAME environment variable.
 
-    OpenAI Model is optional, in default to gpt-4o
-
     :return: string of OpenAI Model.
     """
     model_name = os.environ.get(constants.ROS_OPENAI_MODEL_NAME_ENV_VAR)
     if not model_name:
-        # TODO(@fujitatomoya):better to print info here that using default model.
+        print('AI model is not set, defaults to ' + constants.ROS_OPENAI_DEFAULT_MODEL)
         return constants.ROS_OPENAI_DEFAULT_MODEL
     else:
         return model_name
@@ -50,13 +45,12 @@ def get_endpoint_url() -> str:
     """
     Get OpenAI API service endpoint URL from OPENAI_ENDPOINT environment variable.
 
-    OpenAI API service endpoint URL is optional, in default fallback to openai.
-
     :return: string of OpenAI API service endpoint URL, could be None.
     """
     url = os.environ.get(constants.ROS_OPENAI_ENDPOINT_ENV_VAR)
     # TODO(@fujitatomoya):check if that is valid url before return.
     if not url:
+        print('AI model is not set, defaults to ' + constants.ROS_OPENAI_DEFAULT_ENDPOINT)
         return constants.ROS_OPENAI_DEFAULT_ENDPOINT
     else:
         return url
@@ -134,7 +128,7 @@ class OpenAiConfig:
                 messages = [
                     {
                         "role": "user",
-                        "content": "Are you in service?",
+                        "content": "Are you available?",
                     },
                 ],
                 temperature = self.get_value('api_temperature'),

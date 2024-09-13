@@ -12,12 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# This is only required when actually accessing api.openai.com
 ROS_OPENAI_API_KEY_ENV_VAR = 'OPENAI_API_KEY'
 
 ROS_OPENAI_DEFAULT_MODEL = 'gpt-4o'
+ROS_OLLAMA_DEFAULT_MODEL = 'llama3.1'
+
 ROS_OPENAI_MODEL_NAME_ENV_VAR = 'OPENAI_MODEL_NAME'
 
 ROS_OPENAI_DEFAULT_ENDPOINT = 'https://api.openai.com/v1'
+ROS_OLLAMA_DEFAULT_ENDPOINT = 'http://localhost:11434/v1'
+
 ROS_OPENAI_ENDPOINT_ENV_VAR = 'OPENAI_ENDPOINT'
 
 # The system message helps set the behavior of the assistant.
