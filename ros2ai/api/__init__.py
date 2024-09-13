@@ -20,28 +20,21 @@ import subprocess
 import ros2ai.api.constants as constants
 
 def add_global_arguments(parser):
-    # add global arguments
-    default_models = \
-        'OpenAI: ' + constants.ROS_OPENAI_DEFAULT_MODEL + \
-        ', Ollama: ' + constants.ROS_OLLAMA_DEFAULT_MODEL
+        # add global arguments
     parser.add_argument(
         '-m', '--model', metavar='<model>', type=str, default=None,
-        help=f'Set AI model (e.g {default_models}) or '
-            f'use {constants.ROS_AI_MODEL_NAME_ENV_VAR} environment variable. (argument prevails)')
+        help=f'Set OpenAI API model (default %(default)s) or '
+            f'use {constants.ROS_OPENAI_MODEL_NAME_ENV_VAR} environment variable. (argument prevails)')
     parser.add_argument(
         '-u', '--url', metavar='<url>', type=str, default=None,
-        help=f'Set AI API endpoint URL (e.g {constants.ROS_OPENAI_DEFAULT_ENDPOINT} OR'
-            f' {constants.ROS_OLLAMA_DEFAULT_ENDPOINT}) or '
-            f'use {constants.ROS_AI_ENDPOINT_ENV_VAR} environment variable. (argument prevails)')
+        help='Set OpenAI API endpoint URL (default %(default)s) or '
+            f'use {constants.ROS_OPENAI_ENDPOINT_ENV_VAR} environment variable. (argument prevails)')
     parser.add_argument(
         '-t', '--token', metavar='<token>', type=int, default=None,
-        help='Set AI maximum token (default %(default)s)')
+        help='Set OpenAI API maximum token (default %(default)s)')
 
 
-# TODO(@fujitatomoya): replace curl command based API call into python API.
-#  There is not need to call http request bypass provided Python API calls.
-# curl https://api.openai.com/v1/models -H "Authorization: Bearer XXXXX"
-def openai_get_models(url, headers=None) -> Tuple[bool, Optional[List[str]]]:
+def curl_get_request(url, headers=None) -> Tuple[bool, Optional[List[str]]]:
     response_list = []
     # only supports basic curl subprocess command
     curl_cmd = ["curl", url]
@@ -63,31 +56,6 @@ def openai_get_models(url, headers=None) -> Tuple[bool, Optional[List[str]]]:
                 for data in parsed_data['data']:
                     response_list.append(data['id'])
                 return True, response_list
-        else:
-            # this means, subprocess returns failure
-            print(result.stdout)
-            return False, None
-    except Exception as e:
-        print(f"Error executing curl command: {e}")
-        return False, None
-
-
-# curl http://localhost:11434/api/tags
-def ollama_get_models(url, headers=None) -> Tuple[bool, Optional[List[str]]]:
-    # only supports basic curl subprocess command
-    curl_cmd = ["curl", url]
-
-    if headers:
-        for key, value in headers.items():
-            curl_cmd.extend(["-H", f"{key}: {value}"])
-
-    try:
-        # execute the curl command in subprocess
-        result = subprocess.run(curl_cmd, capture_output=True, text=True, check=True)
-        if result.returncode == 0:
-            data = json.loads(result.stdout)
-            response_list = [d.get('name') + ' ' + d.get('modified_at') for d in data['models']]
-            return True, response_list
         else:
             # this means, subprocess returns failure
             print(result.stdout)

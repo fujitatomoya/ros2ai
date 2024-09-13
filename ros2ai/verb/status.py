@@ -12,16 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ollama import Client
-
 import ros2ai.api.config as config
 
-from ros2ai.api import ollama_get_models, openai_get_models, add_global_arguments
+from ros2ai.api import curl_get_request, add_global_arguments
 from ros2ai.verb import VerbExtension
 
 
 class StatusVerb(VerbExtension):
-    """Check OpenAI/Ollama API status and configuration."""
+    """Check OpenAI API status and configuration."""
 
     def add_arguments(self, parser, cli_name):
         # add global arguments
@@ -40,50 +38,30 @@ class StatusVerb(VerbExtension):
             help='Prints all available models')
 
     def main(self, *, args):
-        ai_config = config.AiConfig(args)
+        openai_config = config.OpenAiConfig(args)
         if (args.verbose is True):
-            ai_config.display_all()
+            openai_config.display_all()
 
-        can_get_models = None
-        model_list = []
-        if config.use_openai():
-            # try to call OpenAI API with user configured setting
-            is_valid = ai_config.is_api_key_valid()
+        # try to call OpenAI API with user configured setting
+        is_valid = openai_config.is_api_key_valid()
 
-            if is_valid:
-                if args.verbose:
-                    print("[SUCCESS] Valid OpenAI API key.")
-            else:
-                print("[FAILURE] Invalid OpenAI API key.")
-                return 1
-
-            # try to list the all models via user configured api key
-            headers = {"Authorization": "Bearer " + ai_config.get_value('api_key')}
-            can_get_models, model_list = openai_get_models(
-                ai_config.get_value('api_endpoint') + "/models",
-                headers
-            )
+        if is_valid:
+            if args.verbose:
+                print("[SUCCESS] Valid OpenAI API key.")
         else:
-            # try to call Ollama API
-            ollama_client = Client(host=ai_config.get_value('api_endpoint'))
-            response = ollama_client.generate(
-                model = ai_config.get_value('api_model'),
-                prompt = 'Are you in available?'
-            )
-            if response['done'] is not True:
-                print("[FAILURE] Failed to call ollama API.")
-                if args.verbose is True:
-                    print(response)
-                return 1
-            else:
-                print(response['response'])
-            # try to get available model list via curl
-            can_get_models, model_list = ollama_get_models(
-                ai_config.get_value('api_endpoint') + "/api/tags"
-            )
+            print("[FAILURE] Invalid OpenAI API key.")
+            return 1
+
+        # try to list the all models via user configured api key
+        headers = {"Authorization": "Bearer " + openai_config.get_value('api_key')}
+        can_get_models, model_list = curl_get_request(
+            openai_config.get_value('api_endpoint') + "/models",
+            headers
+        )
 
         if can_get_models:
-            print("[SUCCESS] Retrieved list of models.")
+            if args.verbose:
+                print("[SUCCESS] Retrieved list of models.")
         else:
             print("[FAILURE] Could not retrieved list of models.")
             return 1

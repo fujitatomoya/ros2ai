@@ -18,76 +18,72 @@ import ros2ai.api.constants as constants
 
 from openai import OpenAI
 
-def use_openai() -> bool:
-    if constants.ROS_OPENAI_API_KEY_ENV_VAR in os.environ:
-        return True
-    else:
-        return False
 
 def get_api_key() -> str:
     """
     Get OpenAI API Key from OPENAI_API_KEY environment variable.
 
-    OpenAI API Key can be set by ros2ai user with OPENAI_API_KEY environment variable.
+    OpenAI API Key must be set by ros2ai user with OPENAI_API_KEY environment variable.
 
-    :return: string of OpenAI API Key or None
+    :return: string of OpenAI API Key.
+    :raises: if OPENAI_API_KEY is not set.
     """
     key_name = os.environ.get(constants.ROS_OPENAI_API_KEY_ENV_VAR, "None")
     return key_name
 
 def get_ai_model() -> str:
     """
-    Get AI Model from AI_MODEL_NAME environment variable as optional.
+    Get OpenAI Model from OPENAI_MODEL_NAME environment variable.
 
-    :return: string of AI Model.
+    OpenAI Model is optional, in default to gpt-4o
+
+    :return: string of OpenAI Model.
     """
-    model_name = os.environ.get(constants.ROS_AI_MODEL_NAME_ENV_VAR)
+    model_name = os.environ.get(constants.ROS_OPENAI_MODEL_NAME_ENV_VAR)
     if not model_name:
-        if use_openai():
-            return constants.ROS_OPENAI_DEFAULT_MODEL
-        else:
-            return constants.ROS_OLLAMA_DEFAULT_MODEL
+        # TODO(@fujitatomoya):better to print info here that using default model.
+        return constants.ROS_OPENAI_DEFAULT_MODEL
     else:
         return model_name
 
 def get_endpoint_url() -> str:
     """
-    Get AI API service endpoint URL from AI_ENDPOINT environment variable as optional.
+    Get OpenAI API service endpoint URL from OPENAI_ENDPOINT environment variable.
 
-    :return: string of AI API service endpoint URL.
+    OpenAI API service endpoint URL is optional, in default fallback to openai.
+
+    :return: string of OpenAI API service endpoint URL, could be None.
     """
-    url = os.environ.get(constants.ROS_AI_ENDPOINT_ENV_VAR)
+    url = os.environ.get(constants.ROS_OPENAI_ENDPOINT_ENV_VAR)
+    # TODO(@fujitatomoya):check if that is valid url before return.
     if not url:
-        if use_openai():
-            return constants.ROS_OPENAI_DEFAULT_ENDPOINT
-        else:
-            return constants.ROS_OLLAMA_DEFAULT_ENDPOINT
+        return constants.ROS_OPENAI_DEFAULT_ENDPOINT
     else:
         return url
 
 def get_temperature() -> float:
     """
-    Get temperature parameter to be used with AI.
+    Get temperature parameter to be used with OpenAI API.
 
     :return: temperature, could be None.
     """
-    temperature = os.environ.get(constants.ROS_AI_TEMPERATURE_ENV_VAR)
+    temperature = os.environ.get(constants.ROS_OPENAI_TEMPERATURE_ENV_VAR)
     if not temperature:
-        return float(constants.ROS_AI_DEFAULT_TEMPERATURE)
+        return float(constants.ROS_OPENAI_DEFAULT_TEMPERATURE)
     else:
         return float(temperature)
 
 def get_role_system(default_role_system: str = None) -> str:
     return os.environ.get(constants.ROLE_SYSTEM_ENV_VAR, default_role_system)
 
-class AiConfig:
+class OpenAiConfig:
     """
-    Collect all AI API related configuration from user setting as key-value pair.
+    Collect all OpenAI API related configuration from user setting as key-value pair.
     """
     def __init__(self, args):
         self.config_pair = {}
 
-        # api key is mandatory for OpenAI, if this is set, it will use OpenAI API
+        # api key is mandatory, this could throw the exception if not set
         self.config_pair['api_key'] = get_api_key()
 
         # ai model is optional, command line argument prevails

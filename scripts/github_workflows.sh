@@ -21,7 +21,6 @@ function mark {
 }
 
 function exit_trap() {
-    # shellcheck disable=SC2317  # Don't warn about unreachable commands in this function
     if [ $? != 0 ]; then
         echo "Command [$BASH_COMMAND] is failed"
         exit 1
@@ -41,9 +40,9 @@ function install_prerequisites () {
     # TODO@fujitatomoya: should install openai via package.xml
     apt install -y pip
     if [ $UBUNTU_VERSION == "24.04" ]; then
-        pip install openai ollama --break-system-packages
+        pip install openai --break-system-packages
     else
-        pip install openai ollama
+        pip install openai
     fi
     #apt install -y ros-${ROS_DISTRO}-desktop --no-install-recommends
     cd $there
@@ -63,7 +62,6 @@ function build_colcon_package () {
     source /opt/ros/${ROS_DISTRO}/setup.bash
     cd ${COLCON_WORKSPACE}
     # TODO@fujitatomoya: extend this with `colcon test`.
-    #  Once ollama is supported, we can integrate `verification.sh` via github workflow as 1st.
     colcon build --symlink-install --packages-select ros2ai
 }
 

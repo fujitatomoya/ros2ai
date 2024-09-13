@@ -20,7 +20,7 @@ from ros2cli.command import CommandExtension
 
 class AiCommand(CommandExtension):
     """
-    ROS 2 OpenAI/Ollama command line interface. ('OPENAI_API_KEY' is required for OpenAI use)
+    ROS 2 OpenAI command line interface. ('OPENAI_API_KEY' is required)
     """
 
     def add_arguments(self, parser, cli_name):

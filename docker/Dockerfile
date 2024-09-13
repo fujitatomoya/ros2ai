@@ -39,11 +39,11 @@ RUN apt-get update \
 
 # Adapt pip install option based on distro (technically ubuntu version)
 RUN if [ "$ROS_DISTRO" = "humble" ]; then \
-        pip install openai ollama; \
+        pip install openai; \
     elif [ "$ROS_DISTRO" = "iron" ]; then \
-        pip install openai ollama; \
+        pip install openai; \
     else \
-        pip install openai ollama --break-system-packages; \
+        pip install openai --break-system-packages; \
     fi
 
 # Build and source colcon workspace
