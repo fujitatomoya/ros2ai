@@ -31,6 +31,7 @@ command_list=(
     "ros2 ai query \"say hello\" -nv"
     "ros2 ai query \"say hello\" -m gpt-3.5-turbo -u https://api.openai.com/v1 -t 100"
     "ros2 ai exec \"give me all topics\""
+    "ros2 ai exec \"give me all topics\" --dry-run"
     "ros2 ai exec \"give me all topics\" -d"
 )
 

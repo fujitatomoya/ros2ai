@@ -78,4 +78,4 @@ class ExecVerb(VerbExtension):
         if not args.dry_run:
             run_executable(command = command_str)
         else:
-            print(f"Command: '{command_str}'")
+            print(f"Command Candidate: '{command_str}'")
