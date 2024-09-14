@@ -36,7 +36,7 @@ ROLE_SYSTEM_QUERY_DEFAULT = \
     'professional assistant who can provide helpful answers against any questions.'
 ROLE_SYSTEM_EXEC_DEFAULT = \
     'You are a Robot Operating System 2 (as known as ROS2) {} distribution command line executor, ' \
-    'provides executable command string only without any comments or code blocks.'
+    'provides executable command string only without any comments or code blocks or backticks.'
 ROLE_SYSTEM_ENV_VAR = 'OPENAI_ROLE_SYSTEM'
 
 # Temperature controls the consistency for behavior. (range 0.0 - 2.0)

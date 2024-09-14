@@ -109,3 +109,12 @@ def truncate_before_substring(*, original, substring) -> str:
     else:
         # If the substring is not found, return the original text
         return original
+
+def remove_backticks(string) -> str:
+    """
+    Removes all backticks from a given string.
+
+    :string: The input string.
+    :return: The string without backticks.
+    """
+    return string.replace('`', '')

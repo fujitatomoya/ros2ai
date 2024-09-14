@@ -16,7 +16,7 @@ from ros2ai.api import add_global_arguments
 from ros2ai.api.config import get_role_system
 from ros2ai.api.constants import ROLE_SYSTEM_EXEC_DEFAULT
 from ros2ai.api.openai import ChatCompletionClient, ChatCompletionParameters
-from ros2ai.api.utils import get_ros_distro, run_executable, truncate_before_substring
+from ros2ai.api.utils import get_ros_distro, run_executable, truncate_before_substring, remove_backticks
 from ros2ai.verb import VerbExtension
 
 
@@ -73,6 +73,7 @@ class ExecVerb(VerbExtension):
             print(f"System role:\n{system_role}")
         command_str = truncate_before_substring(
             original = client.get_result(), substring = 'ros2')
+        command_str = remove_backticks(command_str)
         if not args.dry_run:
             run_executable(command = command_str)
         else:
