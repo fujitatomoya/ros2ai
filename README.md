@@ -81,7 +81,7 @@ colcon build --symlink-install --packages-select ros2ai
 ### Prerequisites
 
 As described in overview diagram, `ros2ai` uses only OpenAI Python API but backend implementation can be replaced with Ollama that provides the compatible API with OpenAI.
-User need to choose either of them are used by `ros2ai` as following configuration.
+User need to choose either of them is used by `ros2ai` as following configuration, otherwise it falls back to use OpenAI.
 
 - [OpenAI](https://openai.com/)
 
