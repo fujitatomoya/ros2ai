@@ -41,9 +41,9 @@ function install_prerequisites () {
     # TODO@fujitatomoya: should install openai via package.xml
     apt install -y pip
     if [ $UBUNTU_VERSION == "24.04" ]; then
-        pip install openai ollama --break-system-packages
+        pip install openai ollama validators --break-system-packages
     else
-        pip install openai ollama
+        pip install openai ollama validators
     fi
     #apt install -y ros-${ROS_DISTRO}-desktop --no-install-recommends
     cd $there

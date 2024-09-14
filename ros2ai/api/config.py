@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import validators
 import os
 
 import ros2ai.api.constants as constants
@@ -36,7 +37,6 @@ def get_ai_model() -> str:
     """
     model_name = os.environ.get(constants.ROS_OPENAI_MODEL_NAME_ENV_VAR)
     if not model_name:
-        print('AI model is not set, defaults to ' + constants.ROS_OPENAI_DEFAULT_MODEL)
         return constants.ROS_OPENAI_DEFAULT_MODEL
     else:
         return model_name
@@ -48,12 +48,16 @@ def get_endpoint_url() -> str:
     :return: string of OpenAI API service endpoint URL, could be None.
     """
     url = os.environ.get(constants.ROS_OPENAI_ENDPOINT_ENV_VAR)
-    # TODO(@fujitatomoya):check if that is valid url before return.
-    if not url:
-        print('AI model is not set, defaults to ' + constants.ROS_OPENAI_DEFAULT_ENDPOINT)
+    url_valid = False
+    try:
+        url_valid = validators.url(url)
+    except Exception as e:
+        print(f"Error validating URL: {e}")
         return constants.ROS_OPENAI_DEFAULT_ENDPOINT
-    else:
+    if url and url_valid:
         return url
+    else:
+        return constants.ROS_OPENAI_DEFAULT_ENDPOINT
 
 def get_temperature() -> float:
     """
