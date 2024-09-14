@@ -40,11 +40,20 @@ command_list=(
 # Function Definitions #
 ########################
 
+# Note: trap cannot handle return code bu signals only. this only works with general error signal.
 function exit_trap() {
     # shellcheck disable=SC2317  # Don't warn about unreachable commands in this function
     if [ $? != 0 ]; then
         echo "Command [$BASH_COMMAND] is failed"
         exit 1
+    fi
+}
+
+function check_and_exit() {
+    # shellcheck disable=SC2317  # Don't warn about unreachable commands in this function
+    if [ $? -ne 0 ]; then
+        echo "Error: [$BASH_COMMAND] failed with exit code $?"
+        exit $?
     fi
 }
 
@@ -65,6 +74,7 @@ function verify_ros2ai() {
     for command in "${command_list[@]}"; do
         echo "----- $command"
         eval $command
+        check_and_exit
     done
     echo "----- all ros2ai commands return successfully!!! -----"
 }
