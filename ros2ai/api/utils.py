@@ -35,7 +35,7 @@ def run_command(*, command, argv = None, prefix = None):
     except Exception as ex:
         print(f"Subprocess generates exception: {ex}")
 
-def run_executable(*, command, argv = None, prefix=None):
+def run_executable(*, command, argv = None, prefix=None) -> int:
     """
     Execute command line interface with arguments. (Interactive)
 

@@ -75,6 +75,8 @@ class ExecVerb(VerbExtension):
             original = client.get_result(), substring = 'ros2')
         command_str = remove_backticks(command_str)
         if not args.dry_run:
-            run_executable(command = command_str)
+            return_code = run_executable(command = command_str)
+            return return_code
         else:
             print(f"Command Candidate: '{command_str}'")
+            return 0

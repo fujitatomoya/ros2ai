@@ -75,3 +75,4 @@ class QueryVerb(VerbExtension):
             print(f"System role:\n{system_role}")
         else:
             client.print_result()
+        return 0
