@@ -6,7 +6,7 @@
 
 see [overview slide deck](https://raw.githack.com/fujitatomoya/ros2ai/rolling/doc/overview.html) for more information.
 
-TODO(@fujitatomoya): insert overview diagram here.
+![ros2ai Architecture Overview](./doc/images/ros2ai_overview.png)
 
 ## Motivation
 
@@ -201,5 +201,7 @@ User need to choose either of them is used by `ros2ai` as following configuratio
 
 - [OpenAI API documentation](https://platform.openai.com/docs)
 - [OpenAI Python API](https://github.com/openai/openai-python)
+- [Ollama](https://github.com/ollama/ollama)
+- [Ollama Python API](https://github.com/ollama/ollama-python)
 
-Special thanks to [OpenAI API](https://platform.openai.com/) 🌟🌟🌟
+Special thanks to [OpenAI API](https://platform.openai.com/) and [Ollama](https://github.com/ollama/ollama) 🌟🌟🌟
