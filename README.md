@@ -51,7 +51,7 @@ https://github.com/fujitatomoya/ros2ai/assets/43395114/2af4fd44-2ccf-472c-9153-c
 - `rolling` / `jazzy`
 
   ```bash
-  pip install openai ollama --break-system-packages
+  pip install openai ollama validators --break-system-packages
   ```
 
   > [!NOTE]
@@ -60,7 +60,7 @@ https://github.com/fujitatomoya/ros2ai/assets/43395114/2af4fd44-2ccf-472c-9153-c
 - `iron` / `humble`
 
   ```bash
-  pip install openai ollama
+  pip install openai ollama validators
   ```
 
 ### Build
