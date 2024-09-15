@@ -103,6 +103,10 @@ User need to choose either of them is used by `ros2ai` as following configuratio
   sudo curl -fsSL https://ollama.com/install.sh | sh
   ### Check ollama.service is up and running
   systemctl status ollama
+  ### Pull llama3.1 (for example) model
+  ollama pull llama3.1
+  ### List available models
+  ollama list
   ```
 
 #### Optional
