@@ -9,7 +9,7 @@ page_number: true
 
 # ***ros2ai Next-Gen ROS 2 CLI***
 
-[ros2ai](https://github.com/fujitatomoya/ros2ai) is a <span style="color:red">next-generation</span> [ROS 2](https://github.com/ros2) command line interface extension with [OpenAI](https://openai.com/)
+[ros2ai](https://github.com/fujitatomoya/ros2ai) is a <span style="color:red">next-generation</span> [ROS 2](https://github.com/ros2) command line interface extension with [OpenAI](https://openai.com/) and [Ollama](https://github.com/ollama/ollama)
 
 <!---
 # Comment Here
@@ -103,7 +103,7 @@ i believe that is exactly where AI comes to play. instead of paying the resource
 
 # Design
 
-- <span style="color:red;">***SIMPLE***</span>. one of the original motivation, it has to be simple as much as possible. it would be even better to remove all sub-commands, just `ros2 ai <request>` if that is possible.
+- <span style="color:red;">***SIMPLE***</span>. one of the original motivation, it has to be simple as much as possible. That is said that it would be even better to remove all sub-commands, just `ros2 ai <whatever your request>` if that is possible.
 
 <!---
 # Comment Here
@@ -119,13 +119,13 @@ i believe that is exactly where AI comes to play. instead of paying the resource
 
 ---
 
-- `status` command is to check if `ros2ai` is configured with valid API key.
-- `query` command is to ask any questions related to ROS 2. This is a single-shot completion, no session is supported currently. OpenAI system attribution is set to default, but can be reconfigurable.
-- `exec` command is that AI executes the appropriate command based on the requests. OpenAI system attribution is set to default, but can be reconfigurable.
+- `status` command is to check if `ros2ai` is configured properly.
+- `query` command is to ask any questions related to ROS 2. This is a single-shot completion, no session is supported currently. OpenAI system role attribution is set to default, but can be reconfigurable.
+- `exec` command is that AI executes the appropriate command based on the requests. OpenAI system role attribution is set to default, but can be reconfigurable.
 
 ---
 
-# Proposals (Ideas)
+# Proposals
 
 <!---
 # These are just ideas, not even sure that is doable.
@@ -133,11 +133,10 @@ i believe that is exactly where AI comes to play. instead of paying the resource
 
 ---
 
-# OpenAI Parameter Adjustment
+# Parameter Adjustment
 
 - more stable AI behavior.
-- cost(token) and latency.
-- ~~ROS 2 distribution awareness. (should be fetched by ros2ai but user setting.)~~
+- Latency for user experience.
 - more...
 
 ---
@@ -158,10 +157,10 @@ currently, `ros2ai` only supports single-shot completion API, that means we can 
 
 ---
 
-# Multiple LLM Support
+# Function Calling
 
-- create abstraction layer to absorb backend LLM APIs? could be local LLM on edge, could be other service backends that depends on the business logics.
-- `ros2ai` should be available for everyone in global, user should be able to switch the backend LLM service as they like.
+for more user friendly experience, user should not be aware of `ros2ai` sub-command at all such as query, execute. this is actually against the design policy for `ros2ai`.
+we could take advantage of [Function Calling](https://platform.openai.com/docs/guides/function-calling) to conceal these sub-commands, and internally categorize the request based on the user input.
 
 <!---
 # Comment Here

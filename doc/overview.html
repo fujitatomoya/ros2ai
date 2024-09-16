@@ -13,7 +13,7 @@
 <header><em><strong>__ ros2ai Next-Gen ROS 2 CLI __</strong></em></header>
 
 <h1 id="ros2ai-next-gen-ros-2-cli"><em><strong>ros2ai Next-Gen ROS 2 CLI</strong></em></h1>
-<p><a href="https://github.com/fujitatomoya/ros2ai">ros2ai</a> is a <span style="color:red">next-generation</span> <a href="https://github.com/ros2">ROS 2</a> command line interface extension with <a href="https://openai.com/">OpenAI</a></p>
+<p><a href="https://github.com/fujitatomoya/ros2ai">ros2ai</a> is a <span style="color:red">next-generation</span> <a href="https://github.com/ros2">ROS 2</a> command line interface extension with <a href="https://openai.com/">OpenAI</a> and <a href="https://github.com/ollama/ollama">Ollama</a></p>
 <footer>by <em><strong><a href="https://github.com/fujitatomoya">fujitatomoya@github</a></strong></em> / <em><strong><a href="https://www.linkedin.com/in/tomoya-fujita-5bb656b6/">tomoyafujita@linkedin</a></strong></em></footer>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section data-header="***__ ros2ai Next-Gen ROS 2 CLI __***" data-footer="by ***[fujitatomoya@github](https://github.com/fujitatomoya)*** / ***[tomoyafujita@linkedin](https://www.linkedin.com/in/tomoya-fujita-5bb656b6/)***" lang="C" style="--header:***__ ros2ai Next-Gen ROS 2 CLI __***;--footer:by ***[fujitatomoya@github](https://github.com/fujitatomoya)*** / ***[tomoyafujita@linkedin](https://www.linkedin.com/in/tomoya-fujita-5bb656b6/)***;--marpit-advanced-background-split:50%;" data-marpit-advanced-background="background" data-marpit-advanced-background-split="right"><div data-marpit-advanced-background-container="true" data-marpit-advanced-background-direction="horizontal"><figure style="background-image:url(&quot;./images/qrcode_image.png&quot;);background-size:50%;"></figure></div></section></foreignObject><foreignObject width="50%" height="720"><section id="2" data-header="***__ ros2ai Next-Gen ROS 2 CLI __***" data-footer="by ***[fujitatomoya@github](https://github.com/fujitatomoya)*** / ***[tomoyafujita@linkedin](https://www.linkedin.com/in/tomoya-fujita-5bb656b6/)***" lang="C" style="--header:***__ ros2ai Next-Gen ROS 2 CLI __***;--footer:by ***[fujitatomoya@github](https://github.com/fujitatomoya)*** / ***[tomoyafujita@linkedin](https://www.linkedin.com/in/tomoya-fujita-5bb656b6/)***;--marpit-advanced-background-split:50%;" data-marpit-advanced-background="content" data-marpit-advanced-background-split="right">
@@ -73,7 +73,7 @@
 <header><em><strong>__ ros2ai Next-Gen ROS 2 CLI __</strong></em></header>
 <h1 id="design">Design</h1>
 <ul>
-<li><span style="color:red;"><em><strong>SIMPLE</strong></em></span>. one of the original motivation, it has to be simple as much as possible. it would be even better to remove all sub-commands, just <code>ros2 ai &lt;request&gt;</code> if that is possible.</li>
+<li><span style="color:red;"><em><strong>SIMPLE</strong></em></span>. one of the original motivation, it has to be simple as much as possible. That is said that it would be even better to remove all sub-commands, just <code>ros2 ai &lt;whatever your request&gt;</code> if that is possible.</li>
 </ul>
 <footer>by <em><strong><a href="https://github.com/fujitatomoya">fujitatomoya@github</a></strong></em> / <em><strong><a href="https://www.linkedin.com/in/tomoya-fujita-5bb656b6/">tomoyafujita@linkedin</a></strong></em></footer>
 </section>
@@ -84,24 +84,23 @@
 </foreignObject><foreignObject width="1280" height="720" data-marpit-advanced-background="pseudo"><section data-header="***__ ros2ai Next-Gen ROS 2 CLI __***" data-footer="by ***[fujitatomoya@github](https://github.com/fujitatomoya)*** / ***[tomoyafujita@linkedin](https://www.linkedin.com/in/tomoya-fujita-5bb656b6/)***" lang="C" style="" data-marpit-advanced-background="pseudo"></section></foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="11" data-header="***__ ros2ai Next-Gen ROS 2 CLI __***" data-footer="by ***[fujitatomoya@github](https://github.com/fujitatomoya)*** / ***[tomoyafujita@linkedin](https://www.linkedin.com/in/tomoya-fujita-5bb656b6/)***" lang="C" style="--header:***__ ros2ai Next-Gen ROS 2 CLI __***;--footer:by ***[fujitatomoya@github](https://github.com/fujitatomoya)*** / ***[tomoyafujita@linkedin](https://www.linkedin.com/in/tomoya-fujita-5bb656b6/)***;">
 <header><em><strong>__ ros2ai Next-Gen ROS 2 CLI __</strong></em></header>
 <ul>
-<li><code>status</code> command is to check if <code>ros2ai</code> is configured with valid API key.</li>
-<li><code>query</code> command is to ask any questions related to ROS 2. This is a single-shot completion, no session is supported currently. OpenAI system attribution is set to default, but can be reconfigurable.</li>
-<li><code>exec</code> command is that AI executes the appropriate command based on the requests. OpenAI system attribution is set to default, but can be reconfigurable.</li>
+<li><code>status</code> command is to check if <code>ros2ai</code> is configured properly.</li>
+<li><code>query</code> command is to ask any questions related to ROS 2. This is a single-shot completion, no session is supported currently. OpenAI system role attribution is set to default, but can be reconfigurable.</li>
+<li><code>exec</code> command is that AI executes the appropriate command based on the requests. OpenAI system role attribution is set to default, but can be reconfigurable.</li>
 </ul>
 <footer>by <em><strong><a href="https://github.com/fujitatomoya">fujitatomoya@github</a></strong></em> / <em><strong><a href="https://www.linkedin.com/in/tomoya-fujita-5bb656b6/">tomoyafujita@linkedin</a></strong></em></footer>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="12" data-header="***__ ros2ai Next-Gen ROS 2 CLI __***" data-footer="by ***[fujitatomoya@github](https://github.com/fujitatomoya)*** / ***[tomoyafujita@linkedin](https://www.linkedin.com/in/tomoya-fujita-5bb656b6/)***" lang="C" style="--header:***__ ros2ai Next-Gen ROS 2 CLI __***;--footer:by ***[fujitatomoya@github](https://github.com/fujitatomoya)*** / ***[tomoyafujita@linkedin](https://www.linkedin.com/in/tomoya-fujita-5bb656b6/)***;">
 <header><em><strong>__ ros2ai Next-Gen ROS 2 CLI __</strong></em></header>
-<h1 id="proposals-ideas">Proposals (Ideas)</h1>
+<h1 id="proposals">Proposals</h1>
 <footer>by <em><strong><a href="https://github.com/fujitatomoya">fujitatomoya@github</a></strong></em> / <em><strong><a href="https://www.linkedin.com/in/tomoya-fujita-5bb656b6/">tomoyafujita@linkedin</a></strong></em></footer>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="13" data-header="***__ ros2ai Next-Gen ROS 2 CLI __***" data-footer="by ***[fujitatomoya@github](https://github.com/fujitatomoya)*** / ***[tomoyafujita@linkedin](https://www.linkedin.com/in/tomoya-fujita-5bb656b6/)***" lang="C" style="--header:***__ ros2ai Next-Gen ROS 2 CLI __***;--footer:by ***[fujitatomoya@github](https://github.com/fujitatomoya)*** / ***[tomoyafujita@linkedin](https://www.linkedin.com/in/tomoya-fujita-5bb656b6/)***;">
 <header><em><strong>__ ros2ai Next-Gen ROS 2 CLI __</strong></em></header>
-<h1 id="openai-parameter-adjustment">OpenAI Parameter Adjustment</h1>
+<h1 id="parameter-adjustment">Parameter Adjustment</h1>
 <ul>
 <li>more stable AI behavior.</li>
-<li>cost(token) and latency.</li>
-<li><s>ROS 2 distribution awareness. (should be fetched by ros2ai but user setting.)</s></li>
+<li>Latency for user experience.</li>
 <li>more...</li>
 </ul>
 <footer>by <em><strong><a href="https://github.com/fujitatomoya">fujitatomoya@github</a></strong></em> / <em><strong><a href="https://www.linkedin.com/in/tomoya-fujita-5bb656b6/">tomoyafujita@linkedin</a></strong></em></footer>
@@ -120,11 +119,9 @@
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="16" data-header="***__ ros2ai Next-Gen ROS 2 CLI __***" data-footer="by ***[fujitatomoya@github](https://github.com/fujitatomoya)*** / ***[tomoyafujita@linkedin](https://www.linkedin.com/in/tomoya-fujita-5bb656b6/)***" lang="C" style="--header:***__ ros2ai Next-Gen ROS 2 CLI __***;--footer:by ***[fujitatomoya@github](https://github.com/fujitatomoya)*** / ***[tomoyafujita@linkedin](https://www.linkedin.com/in/tomoya-fujita-5bb656b6/)***;">
 <header><em><strong>__ ros2ai Next-Gen ROS 2 CLI __</strong></em></header>
-<h1 id="multiple-llm-support">Multiple LLM Support</h1>
-<ul>
-<li>create abstraction layer to absorb backend LLM APIs? could be local LLM on edge, could be other service backends that depends on the business logics.</li>
-<li><code>ros2ai</code> should be available for everyone in global, user should be able to switch the backend LLM service as they like.</li>
-</ul>
+<h1 id="function-calling">Function Calling</h1>
+<p>for more user friendly experience, user should not be aware of <code>ros2ai</code> sub-command at all such as query, execute. this is actually against the design policy for <code>ros2ai</code>.<br />
+we could take advantage of <a href="https://platform.openai.com/docs/guides/function-calling">Function Calling</a> to conceal these sub-commands, and internally categorize the request based on the user input.</p>
 <footer>by <em><strong><a href="https://github.com/fujitatomoya">fujitatomoya@github</a></strong></em> / <em><strong><a href="https://www.linkedin.com/in/tomoya-fujita-5bb656b6/">tomoyafujita@linkedin</a></strong></em></footer>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="17" data-header="***__ ros2ai Next-Gen ROS 2 CLI __***" data-footer="by ***[fujitatomoya@github](https://github.com/fujitatomoya)*** / ***[tomoyafujita@linkedin](https://www.linkedin.com/in/tomoya-fujita-5bb656b6/)***" lang="C" style="--header:***__ ros2ai Next-Gen ROS 2 CLI __***;--footer:by ***[fujitatomoya@github](https://github.com/fujitatomoya)*** / ***[tomoyafujita@linkedin](https://www.linkedin.com/in/tomoya-fujita-5bb656b6/)***;">
