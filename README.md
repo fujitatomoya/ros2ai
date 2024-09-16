@@ -201,7 +201,7 @@ User need to choose either of them is used by `ros2ai` as following configuratio
 
 ## Reference
 
-[![Watch the video](https://img.youtube.com/vi/60IOU1KrWXY/maxresdefault.jpg)](https://www.youtube.com/watch?v=60IOU1KrWXY)
+[<img src="https://img.youtube.com/vi/60IOU1KrWXY/maxresdefault.jpg" width="250"/>](https://www.youtube.com/watch?v=60IOU1KrWXY)
 
 - [OpenAI API documentation](https://platform.openai.com/docs)
 - [OpenAI Python API](https://github.com/openai/openai-python)
