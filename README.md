@@ -38,11 +38,11 @@ https://github.com/fujitatomoya/ros2ai/assets/43395114/78a0799b-40e3-4dc8-99cb-4
 see available images for [tomoyafujita/ros2ai@dockerhub](https://hub.docker.com/repository/docker/tomoyafujita/ros2ai/tags?page=1&ordering=last_updated)
 
 ```bash
-docker run -it --rm -e OPENAI_API_KEY=$OPENAI_API_KEY tomoyafujita/ros2ai:humble
+docker run -it --rm --net=host -e OPENAI_API_KEY=$OPENAI_API_KEY tomoyafujita/ros2ai:humble
 ```
 
 > [!NOTE]
-> `OPENAI_API_KEY` environmental variable is not required if using Ollama.
+> `OPENAI_API_KEY` environmental variable is not required if using Ollama. And it is expecting that Ollama runs on the host system mostly, so that container is bound to the host network interface.
 
 https://github.com/fujitatomoya/ros2ai/assets/43395114/2af4fd44-2ccf-472c-9153-c3c19987dc96
 
