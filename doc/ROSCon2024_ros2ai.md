@@ -34,7 +34,7 @@ page_number: true
 
 ## **Talking is Easy, Show me the Code...** **<span style="color:red;">Seeing is More Believing</span>**
 
-> Demo can be found on https://github.com/fujitatomoya/ros2ai
+> Demo also can be found on https://github.com/fujitatomoya/ros2ai
 
 <!---
 # Questions for audience like
@@ -43,16 +43,37 @@ page_number: true
 # If they have, they are in the right place.
 #
 # ros2ai is easy to use with container, just type `docker run` is all you need to do.
+--->
+
+---
+
+<video controls="controls" src="https://github.com/user-attachments/assets/a5d4dda6-cd6b-41d1-8038-40e4906082b0">
+
+<!---
 # 
 # Demo:
 # - checking the status with openAI, `ros2 ai status -lv` to see API works okay and all the available models
 # - 1st demo is query to ask the question about ROS 2, ros2ai can answer your question about ROS 2 based on your current distribution environment.
 # - `ros2 ai query "what is the qos durability?"`
 # - `ros2 ai query "how can we create the package"`
+--->
+
+---
+
+<video controls="controls" src="https://github.com/user-attachments/assets/6b6d8038-6d5a-4aaf-aace-bb9af4995145">
+
+<!---
+#
+# Demo:
 # - next is to ask AI to execute the appropriate command based on your request. ros2ai can execute the command behalf of you, and give the response back to you. that means you can iterate with ROS 2 system without figuring out the command line tools.
-# - `ros2 ai exec "give me all the topic"` and we can check the details, `ros2 ai exec "detailed info about topic /rosout"`
-# - it works with any languages, `ros2 ai exec "パラメータリストをください"`
+# - `ros2 ai exec "give me all the topic"`
+# - `ros2 ai exec "detailed info about topic /rosout"`
+# - it works with any languages,
+# - `ros2 ai exec "パラメータリストをください"`
+# - `ros2 ai exec "Tilmeld dig emnet /chatter"`
+#
 # Demo shows us what we can do with ros2ai!
+#
 --->
 
 ---
