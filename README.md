@@ -203,6 +203,7 @@ User need to choose either of them is used by `ros2ai` as following configuratio
 
 [<img src="https://img.youtube.com/vi/60IOU1KrWXY/maxresdefault.jpg" width="250"/>](https://www.youtube.com/watch?v=60IOU1KrWXY)
 
+- [ROSCon 2024 Presentation Slide](https://raw.githack.com/fujitatomoya/ros2ai/rolling/doc/ROSCon2024_ros2ai.html)
 - [OpenAI API documentation](https://platform.openai.com/docs)
 - [OpenAI Python API](https://github.com/openai/openai-python)
 - [Ollama](https://github.com/ollama/ollama)
