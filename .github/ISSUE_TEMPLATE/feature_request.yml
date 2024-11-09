@@ -8,7 +8,7 @@ body:
   - type: textarea
     id: description
     attributes:
-      label: Feature description
+      label: Description
       description: |
         Description in a few sentences what the feature consists of and what problem it will solve.
     validations:
@@ -16,7 +16,7 @@ body:
   - type: textarea
     id: motivation
     attributes:
-      label: Feature Motivation
+      label: Motivation
       description: |
         Description what you are trying to solve, what is the problem to address with this Feature Request.
     validations:
@@ -24,7 +24,7 @@ body:
   - type: textarea
     id: implementation
     attributes:
-      label: Implementation considerations
+      label: Design / Implementation Considerations
     validations:
       required: false
       description: |
