@@ -115,7 +115,7 @@ User need to choose either of them is used by `ros2ai` as following configuratio
 | :----------------------| :-------------------------- | :--------------------- |
 | OPENAI_API_KEY         | None.                       | Required for OpenAI    |
 | OPENAI_MODEL_NAME      | 'gpt-4o'                    | AI model to be used. e.g) llama3.1 (Ollama) |
-| OPENAI_ENDPOINT        | 'https://api.openai.com/v1' | API endpoint URL. e.g) http://localhost:11434/v1 (Ollama) |
+| OPENAI_ENDPOINT        | 'https://api.openai.com/v1' | API endpoint URL. e.g) http://127.0.0.1:11434/v1 (Ollama) |
 | OPENAI_TEMPERATURE     | 0.5                         | [OpenAI temperature](https://platform.openai.com/docs/guides/text-generation/how-should-i-set-the-temperature-parameter) |
 
 > [!NOTE]
@@ -136,7 +136,7 @@ User need to choose either of them is used by `ros2ai` as following configuratio
   ### Ollama
   unset OPENAI_API_KEY
   export OPENAI_MODEL_NAME=llama3.1
-  export OPENAI_ENDPOINT=http://localhost:11434/v1
+  export OPENAI_ENDPOINT=http://127.0.0.1:11434/v1
   ```
 
 - `status` to check OpenAI API key is valid.
