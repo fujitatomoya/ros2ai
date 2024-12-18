@@ -69,7 +69,7 @@ def curl_get_request(url, headers=None) -> Tuple[bool, Optional[List[str]]]:
         return False, None
 
 
-# curl http://localhost:11434/api/tags
+# curl http://127.0.0.1:11434/api/tags
 def ollama_get_models(url, headers=None) -> Tuple[bool, Optional[List[str]]]:
     # only supports basic curl subprocess command
     curl_cmd = ["curl", url]

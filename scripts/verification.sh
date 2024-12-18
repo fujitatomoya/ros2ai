@@ -12,7 +12,7 @@
 # User Setting #
 ################
 
-# ROS setting should be done before calling this scripts, fallking back to defaults.
+# ROS setting should be done before calling this scripts, falling back to defaults.
 ROS_VERSION="${ROS_VERSION:-2}"
 ROS_PYTHON_VERSION="${ROS_PYTHON_VERSION:-3}"
 ROS_AUTOMATIC_DISCOVERY_RANGE="${ROS_AUTOMATIC_DISCOVERY_RANGE:-SUBNET}"
@@ -29,8 +29,9 @@ command_list=(
     "ros2 ai query -h"
     "ros2 ai query \"say hello\""
     "ros2 ai query \"say hello\" -nv"
-    "ros2 ai query \"say hello\" -m gpt-4 -u https://api.openai.com/v1 -t 100"
-    #"ros2 ai query \"say hello\" -m llama3.1 -u http://localhost:11434/v1 -t 100"
+    # TODO(@fujitatomoya): use environmental variable instead.
+    #"ros2 ai query \"say hello\" -m gpt-4 -u https://api.openai.com/v1 -t 100"
+    "ros2 ai query \"say hello\" -m llama3.1 -u http://127.0.0.1:11434/v1 -t 100"
     "ros2 ai exec \"give me all topics\""
     "ros2 ai exec \"give me all topics\" --dry-run"
     "ros2 ai exec \"give me all topics\" -d"

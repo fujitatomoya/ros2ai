@@ -39,11 +39,11 @@ RUN apt-get update \
 
 # Adapt pip install option based on distro (technically ubuntu version)
 RUN if [ "$ROS_DISTRO" = "humble" ]; then \
-        pip install openai ollama validators; \
+        pip install openai ollama validators --ignore-installed; \
     elif [ "$ROS_DISTRO" = "iron" ]; then \
-        pip install openai ollama validators; \
+        pip install openai ollama validators --ignore-installed; \
     else \
-        pip install openai ollama validators --break-system-packages; \
+        pip install openai ollama validators --break-system-packages --ignore-installed; \
     fi
 
 # Build and source colcon workspace

@@ -50,6 +50,7 @@ def get_endpoint_url() -> str:
     url = os.environ.get(constants.ROS_OPENAI_ENDPOINT_ENV_VAR)
     url_valid = False
     try:
+        # this returns ValidationError with `http://localhost:11434/v1`
         url_valid = validators.url(url)
     except Exception as e:
         print(f"Error validating URL: {e}")
