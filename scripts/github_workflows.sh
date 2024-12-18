@@ -43,7 +43,7 @@ function install_prerequisites () {
     if [ $UBUNTU_VERSION == "24.04" ]; then
         pip install openai ollama validators --break-system-packages --ignore-installed
     else
-        pip install openai ollama validators
+        pip install openai ollama validators --ignore-installed
     fi
     #apt install -y ros-${ROS_DISTRO}-desktop --no-install-recommends
     cd $there
