@@ -1,4 +1,4 @@
-[![humble](https://github.com/fujitatomoya/ros2ai/actions/workflows/humble.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/humble.yml) [![iron](https://github.com/fujitatomoya/ros2ai/actions/workflows/iron.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/iron.yml) [![jazzy](https://github.com/fujitatomoya/ros2ai/actions/workflows/jazzy.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/jazzy.yml) [![rolling](https://github.com/fujitatomoya/ros2ai/actions/workflows/rolling.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/rolling.yml)
+[![humble](https://github.com/fujitatomoya/ros2ai/actions/workflows/humble.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/humble.yml) [![jazzy](https://github.com/fujitatomoya/ros2ai/actions/workflows/jazzy.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/jazzy.yml) [![rolling](https://github.com/fujitatomoya/ros2ai/actions/workflows/rolling.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/rolling.yml)
 
 # ros2ai 🤖
 
@@ -28,7 +28,6 @@ https://github.com/fujitatomoya/ros2ai/assets/43395114/78a0799b-40e3-4dc8-99cb-4
 | :---------------- | :-------- | :--- |
 | Rolling Ridley    |    ✅     | Development / Mainstream Branch |
 | Jazzy Jalisco     |    ✅     | |
-| Iron Irwini       |    ✅     | |
 | Humble Hawksbill  |    ✅     | |
 
 ## Installation
@@ -57,7 +56,7 @@ https://github.com/fujitatomoya/ros2ai/assets/43395114/2af4fd44-2ccf-472c-9153-c
   > [!NOTE]
   > see [PEP 668 – Marking Python base environments as “externally managed”](PEP 668 – Marking Python base environments as “externally managed”) why `--break-system-packages` is required.
 
-- `iron` / `humble`
+- `humble`
 
   ```bash
   pip install openai ollama validators --ignore-installed

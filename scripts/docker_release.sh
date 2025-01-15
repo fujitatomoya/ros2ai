@@ -13,7 +13,6 @@ COLCON_WS="${COLCON_WS:-/root/colcon_ws}"
 
 ros_distros=(
     "humble"
-    "iron"
     "jazzy"
     "rolling"
 )
