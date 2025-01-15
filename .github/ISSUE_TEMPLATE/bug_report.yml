@@ -33,7 +33,7 @@ body:
     attributes:
       label: "ROS version or commit hash:"
       description: |
-        **Examples:**  *humble*, *iron*, *jazzy*, ...
+        **Examples:**  *humble*, *jazzy*, ...
     validations:
       required: true
   - type: input
