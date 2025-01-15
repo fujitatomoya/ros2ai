@@ -1,0 +1,23 @@
+name: Nightly Build for humble
+
+on:
+  schedule:
+    - cron: '0 13 * * *'  # Runs every day at midnight, 13:00 UTC
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ros:humble
+      env:
+        ROS_DISTRO: humble
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Build with ROS humble
+        shell: bash
+        run: |
+          ./scripts/github_workflows.sh

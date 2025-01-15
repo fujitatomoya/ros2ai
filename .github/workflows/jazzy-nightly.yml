@@ -1,0 +1,23 @@
+name: Nightly Build for jazzy
+
+on:
+  schedule:
+    - cron: '0 13 * * *'  # Runs every day at midnight, 13:00 UTC
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ros:jazzy
+      env:
+        ROS_DISTRO: jazzy
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Build with ROS jazzy
+        shell: bash
+        run: |
+          ./scripts/github_workflows.sh

@@ -1,4 +1,5 @@
 [![humble](https://github.com/fujitatomoya/ros2ai/actions/workflows/humble.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/humble.yml) [![jazzy](https://github.com/fujitatomoya/ros2ai/actions/workflows/jazzy.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/jazzy.yml) [![rolling](https://github.com/fujitatomoya/ros2ai/actions/workflows/rolling.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/rolling.yml)
+[![humble-nightly](https://github.com/fujitatomoya/ros2ai/actions/workflows/humble-nightly.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/humble-nightly.yml) [![jazzy-nightly](https://github.com/fujitatomoya/ros2ai/actions/workflows/jazzy-nightly.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/jazzy-nightly.yml) [![rolling-nightly](https://github.com/fujitatomoya/ros2ai/actions/workflows/rolling-nightly.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/rolling-nightly.yml)
 
 # ros2ai 🤖
 
