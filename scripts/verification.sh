@@ -41,7 +41,7 @@ command_list=(
 # Function Definitions #
 ########################
 
-# Note: trap cannot handle return code bu signals only. this only works with general error signal.
+# Note: trap cannot handle return code by signals only. this only works with general error signal.
 function exit_trap() {
     # shellcheck disable=SC2317  # Don't warn about unreachable commands in this function
     if [ $? != 0 ]; then
@@ -64,7 +64,7 @@ function check_user_setting () {
     if [ -z "$OPENAI_API_KEY" ]; then
         echo "OPENAI_API_KEY is not set, if accessing OpenAI it will fail to call API."
     fi
-    # check if ros2 envirnoment setting (trap function can catch the error)
+    # check if ros2 environment setting (trap function can catch the error)
     ros2
 }
 

@@ -54,7 +54,7 @@ RUN echo -n -e "\n" >> /root/.bashrc
 RUN echo "### ros2ai workspace setting" >> /root/.bashrc
 RUN echo "cd $COLCON_WS && source ./install/setup.bash" >> /root/.bashrc
 
-# Overwrite as environmental varialble so that entrypoint can rely on those
+# Overwrite as environmental variable so that entrypoint can rely on those
 # OPENAI_API_KEY should not be included here, that is required for the runtime
 ENV COLCON_WS=${COLCON_WS}
 ENV ROS_DISTRO=${ROS_DISTRO}

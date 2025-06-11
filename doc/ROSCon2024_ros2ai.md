@@ -89,7 +89,7 @@ page_number: true
 
 <!---
 # Just introduce the motivation quickly with adding extra information.
-# We are gonna talk about these with the following slides as a background including feature plan.
+# We are going to talk about these with the following slides as a background including feature plan.
 --->
 
 ---
@@ -101,7 +101,7 @@ page_number: true
 browsing, clicking and typing many times to get to the information does not work for us. We need ***what***, not ***where***. all these are small things, but can be easily compiled up to mountain, especially beginners.
 
 <!---
-# this is what we do, but we do not want to if not necessary, so lets not do that.
+# this is what we do, but we do not want to if not necessary, so let's not do that.
 # giving the example about QoS.
 # before we get to know the QoS, we need to google, check the list, find appropriate site, and finally we still need to find the contents from ros2 documentation.
 # this is expensive especially for beginners... nobody wants to do this.
@@ -160,7 +160,7 @@ that is exactly where AI comes to play. instead of paying the resources to non-s
 # ros2ai sits in between ROS 2 environment and OpenAI Python API like this.
 # OpenAI Python API is compatible with Ollama, so that ros2ai can be agnostic from AI service via interface.
 # you can configure backend AI service endpoint with using environmental variables.
-# so every time you type the command in ros2ai, that is gonna process the request with OpenAI or Ollama, and iterate with ROS 2 system then comes back to you with result.
+# so every time you type the command in ros2ai, that is going to process the request with OpenAI or Ollama, and iterate with ROS 2 system then comes back to you with result.
 --->
 
 ---
@@ -234,7 +234,7 @@ for more user friendly experience, user should not be aware of `ros2ai` sub-comm
 we could take advantage of [Function Calling](https://platform.openai.com/docs/guides/function-calling) to conceal these sub-commands, and internally categorize the request based on the user input.
 
 <!---
-# this is gonna be a good feature to support the most simple use of `ros2ai` without any options and sub-commands.
+# this is going to be a good feature to support the most simple use of `ros2ai` without any options and sub-commands.
 # currently it is the responsibility and burden for user to tell the sub-command category so that ros2ai can be told the context what needs to be done, question or execution?
 # although this works for now, i believe that should be processed and categorized by AI, instead of user's burden.
 # i think we can take advantage of Function Calling method to categorize the request with using AI, and then process the next user's request with that predicted context.
