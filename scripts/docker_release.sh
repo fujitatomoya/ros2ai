@@ -34,7 +34,7 @@ function print_usage() {
     echo "Options(default):"
     echo "  -b : build docker container images (default: false)"
     echo "  -v : verify images to call ros2ai commands (default: false)"
-    echo "  -u : uploade images to DockerHub (default: false)"
+    echo "  -u : upload images to DockerHub (default: false)"
     exit 1
 }
 

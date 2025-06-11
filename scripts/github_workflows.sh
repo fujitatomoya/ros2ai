@@ -8,7 +8,7 @@
 # To avoid updating and modifying the files under `.github/workflows`,
 # this scripts should be adjusted building process accordingly.
 # And `.github/workflows` just calls this script in the workflow pipeline.
-# This allows us to maintain the workflow process easier for contributers.
+# This allows us to maintain the workflow process easier for contributors.
 #
 #####################################################################
 
@@ -51,7 +51,7 @@ function install_prerequisites () {
 
 function setup_build_colcon_env () {
     trap exit_trap ERR
-    echo "[${FUNCNAME[0]}]: set up colcon build environement."
+    echo "[${FUNCNAME[0]}]: set up colcon build environment."
     mkdir -p ${COLCON_WORKSPACE}/src
     cd ${COLCON_WORKSPACE}
     cp -rf $there ${COLCON_WORKSPACE}/src
