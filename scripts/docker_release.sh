@@ -14,6 +14,7 @@ COLCON_WS="${COLCON_WS:-/root/colcon_ws}"
 ros_distros=(
     "humble"
     "jazzy"
+    "kilted"
     "rolling"
 )
 
@@ -83,7 +84,10 @@ function verify_images() {
     echo "[${FUNCNAME[0]}]: verifying ros2ai docker container images."
     for distro in "${ros_distros[@]}"; do
         echo "----- $distro image verifying"
-        docker run -it --rm -e OPENAI_API_KEY=$OPENAI_API_KEY $DOCKERHUB_USERNAME/ros2ai:$distro \
+        docker run -it --rm -e OPENAI_API_KEY=$OPENAI_API_KEY \
+            -e OPENAI_ENDPOINT=$OPENAI_ENDPOINT \
+            -e OPENAI_MODEL_NAME=$OPENAI_MODEL_NAME \
+            $DOCKERHUB_USERNAME/ros2ai:$distro \
             bash -c "/ros_entrypoint.sh && source /root/.bashrc && cd $COLCON_WS && source ./install/setup.bash && $COLCON_WS/src/ros2ai/scripts/verification.sh"
     done
     echo "----- all images successfully verified!!! -----"
