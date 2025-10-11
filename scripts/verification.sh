@@ -29,9 +29,7 @@ command_list=(
     "ros2 ai query -h"
     "ros2 ai query \"say hello\""
     "ros2 ai query \"say hello\" -nv"
-    # TODO(@fujitatomoya): use environmental variable instead.
-    #"ros2 ai query \"say hello\" -m gpt-4 -u https://api.openai.com/v1 -t 100"
-    "ros2 ai query \"say hello\" -m llama3.1 -u http://127.0.0.1:11434/v1 -t 100"
+    "ros2 ai query \"say hello\" -m gpt-5 -t 100"
     "ros2 ai exec \"give me all topics\""
     "ros2 ai exec \"give me all topics\" --dry-run"
     "ros2 ai exec \"give me all topics\" -d"

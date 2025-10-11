@@ -43,5 +43,5 @@ ROLE_SYSTEM_ENV_VAR = 'OPENAI_ROLE_SYSTEM'
 # The lower the temperature is, the more deterministic behavior that OpenAI does.
 # The higher temperature is, the more creative OpenAI can be.
 # Temperature value based on the desired trade-off between coherence and creativity.
-ROS_OPENAI_DEFAULT_TEMPERATURE = 0.5
+ROS_OPENAI_DEFAULT_TEMPERATURE = 1.0
 ROS_OPENAI_TEMPERATURE_ENV_VAR = 'OPENAI_TEMPERATURE'
