@@ -1,5 +1,5 @@
-[![humble](https://github.com/fujitatomoya/ros2ai/actions/workflows/humble.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/humble.yml) [![jazzy](https://github.com/fujitatomoya/ros2ai/actions/workflows/jazzy.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/jazzy.yml) [![rolling](https://github.com/fujitatomoya/ros2ai/actions/workflows/rolling.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/rolling.yml)
-[![humble-nightly](https://github.com/fujitatomoya/ros2ai/actions/workflows/humble-nightly.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/humble-nightly.yml) [![jazzy-nightly](https://github.com/fujitatomoya/ros2ai/actions/workflows/jazzy-nightly.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/jazzy-nightly.yml) [![rolling-nightly](https://github.com/fujitatomoya/ros2ai/actions/workflows/rolling-nightly.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/rolling-nightly.yml)
+[![humble](https://github.com/fujitatomoya/ros2ai/actions/workflows/humble.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/humble.yml) [![jazzy](https://github.com/fujitatomoya/ros2ai/actions/workflows/jazzy.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/jazzy.yml) [![kilted](https://github.com/fujitatomoya/ros2ai/actions/workflows/kilted.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/kilted.yml) [![rolling](https://github.com/fujitatomoya/ros2ai/actions/workflows/rolling.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/rolling.yml)
+[![humble-nightly](https://github.com/fujitatomoya/ros2ai/actions/workflows/humble-nightly.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/humble-nightly.yml) [![jazzy-nightly](https://github.com/fujitatomoya/ros2ai/actions/workflows/jazzy-nightly.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/jazzy-nightly.yml) [![kilted-nightly](https://github.com/fujitatomoya/ros2ai/actions/workflows/kilted-nightly.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/kilted-nightly.yml) [![rolling-nightly](https://github.com/fujitatomoya/ros2ai/actions/workflows/rolling-nightly.yml/badge.svg?branch=rolling)](https://github.com/fujitatomoya/ros2ai/actions/workflows/rolling-nightly.yml)
 
 # ros2ai 🤖
 
@@ -28,6 +28,7 @@ https://github.com/fujitatomoya/ros2ai/assets/43395114/78a0799b-40e3-4dc8-99cb-4
 | Distribution      | Supported | Note |
 | :---------------- | :-------- | :--- |
 | Rolling Ridley    |    ✅     | Development / Mainstream Branch |
+| Kilted Kaiju      |    ✅     | |
 | Jazzy Jalisco     |    ✅     | |
 | Humble Hawksbill  |    ✅     | |
 
@@ -48,7 +49,7 @@ https://github.com/fujitatomoya/ros2ai/assets/43395114/2af4fd44-2ccf-472c-9153-c
 
 ### Required Package
 
-- `rolling` / `jazzy`
+- `rolling` / `kilted` / `jazzy`
 
   ```bash
   pip install openai ollama validators --break-system-packages --ignore-installed
