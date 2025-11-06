@@ -2,8 +2,8 @@
 Changelog for package ros2ai
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.1 (2025-11-06)
+------------------
 * Support Kilted Kaiju with docker image. (`#67 <https://github.com/fujitatomoya/ros2ai/issues/67>`_)
 * change OPENAI_TEMPERATURE default into 1.0.
 * enable gemini-cli github action. (`#64 <https://github.com/fujitatomoya/ros2ai/issues/64>`_)
