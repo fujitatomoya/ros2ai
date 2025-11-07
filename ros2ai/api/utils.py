@@ -111,34 +111,34 @@ def truncate_before_substring(*, original, substring) -> str:
         # If the substring is not found, return the original text
         return original
 
-def remove_backticks(string) -> str:
+def remove_backticks(original) -> str:
     """
     Removes all backticks from a given string.
 
-    :string: The input string.
+    :original: The original input string.
     :return: The string without backticks.
     """
-    return string.replace('`', '')
+    return original.replace('`', '')
 
-def ros2_single_command(command_string) -> str:
+def ros2_single_command(original) -> str:
     """
     Check if the command string contains only a single command (no command separators).
     If multiple commands are found, extract the first 'ros2' command and warn the user.
 
-    :command_string: The command string to validate.
+    :original: The original command string to validate.
     :return: The validated single command string, or the first 'ros2' command if multiple found.
     """
     # Common command separators in shell
     separators = [';', '&&', '||', '&', '|']
 
     # Strip whitespace and check for separators
-    cleaned_command = command_string.strip()
+    cleaned_command = original.strip()
 
     # Check if command contains separators
     has_separators = any(separator in cleaned_command for separator in separators)
 
     if has_separators:
-        print(f"Warning: Multiple commands detected in \"{command_string}\". Only the first 'ros2' command will be executed.")
+        print(f"Warning: Multiple commands detected in \"{original}\". Only the first 'ros2' command will be executed.")
 
         # Split by all separators and find first ros2 command
         pattern = '|'.join(re.escape(sep) for sep in separators)
