@@ -29,8 +29,11 @@ command_list=(
     "ros2 ai query -h"
     "ros2 ai query \"say hello\""
     "ros2 ai query \"say hello\" -nv"
-    "ros2 ai query \"say hello\" -m gpt-5 -t 100"
-    "ros2 ai exec \"give me all topics\""
+    "ros2 ai query \"say hello\" -m gpt-5 -t 1000"
+    "ros2 ai exec -m o3 \"give me all topics\""
+    "ros2 ai exec -m o4-mini \"give me all topics\""
+    "ros2 ai exec -m gpt-5 \"give me all topics\""
+    "ros2 ai exec -m gemini-2.5-pro \"give me all topics\""
     "ros2 ai exec \"give me all topics\" --dry-run"
     "ros2 ai exec \"give me all topics\" -d"
 )

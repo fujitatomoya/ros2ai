@@ -15,7 +15,7 @@
 # This is only required when actually accessing api.openai.com
 ROS_OPENAI_API_KEY_ENV_VAR = 'OPENAI_API_KEY'
 
-ROS_OPENAI_DEFAULT_MODEL = 'gpt-4o'
+ROS_OPENAI_DEFAULT_MODEL = 'gpt-5'
 ROS_OLLAMA_DEFAULT_MODEL = 'llama3.1'
 
 ROS_OPENAI_MODEL_NAME_ENV_VAR = 'OPENAI_MODEL_NAME'
@@ -35,8 +35,8 @@ ROLE_SYSTEM_QUERY_DEFAULT = \
     'You are a Robot Operating System version 2 (as known as ROS2) {} distribution ' \
     'professional assistant who can provide helpful answers against any questions.'
 ROLE_SYSTEM_EXEC_DEFAULT = \
-    'You are a Robot Operating System 2 (as known as ROS2) {} distribution command line executor, ' \
-    'provides executable command string only without any comments or code blocks or backticks.'
+    'You are a Robot Operating System 2 (as known as ROS 2) {} distribution command line executor, ' \
+    'provides single executable command string only without any comments or code blocks or backticks.'
 ROLE_SYSTEM_ENV_VAR = 'OPENAI_ROLE_SYSTEM'
 
 # Temperature controls the consistency for behavior. (range 0.0 - 2.0)

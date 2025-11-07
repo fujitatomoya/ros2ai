@@ -15,6 +15,7 @@
 import signal
 import subprocess
 import os
+import re
 
 def run_command(*, command, argv = None, prefix = None):
     """
@@ -118,3 +119,37 @@ def remove_backticks(string) -> str:
     :return: The string without backticks.
     """
     return string.replace('`', '')
+
+def ros2_single_command(command_string) -> str:
+    """
+    Check if the command string contains only a single command (no command separators).
+    If multiple commands are found, extract the first 'ros2' command and warn the user.
+
+    :command_string: The command string to validate.
+    :return: The validated single command string, or the first 'ros2' command if multiple found.
+    """
+    # Common command separators in shell
+    separators = [';', '&&', '||', '&', '|']
+
+    # Strip whitespace and check for separators
+    cleaned_command = command_string.strip()
+
+    # Check if command contains separators
+    has_separators = any(separator in cleaned_command for separator in separators)
+
+    if has_separators:
+        print(f"Warning: Multiple commands detected in \"{command_string}\". Only the first 'ros2' command will be executed.")
+
+        # Split by all separators and find first ros2 command
+        pattern = '|'.join(re.escape(sep) for sep in separators)
+        commands = re.split(pattern, cleaned_command)
+
+        for cmd in commands:
+            cmd = cmd.strip()
+            if cmd.startswith('ros2'):
+                return cmd
+
+        # If no ros2 command found, return the first command
+        return commands[0].strip() if commands else ""
+
+    return cleaned_command
