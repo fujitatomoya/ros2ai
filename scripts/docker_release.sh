@@ -9,7 +9,7 @@
 ################
 
 DOCKERHUB_USERNAME="${DOCKERHUB_USERNAME:-tomoyafujita}"
-COLCON_WS="${COLCON_WS:-/root/colcon_ws}"
+COLCON_WS="${COLCON_WS:-/home/ros2ai/colcon_ws}"
 
 ros_distros=(
     "humble"
@@ -88,7 +88,7 @@ function verify_images() {
             -e OPENAI_ENDPOINT=$OPENAI_ENDPOINT \
             -e OPENAI_MODEL_NAME=$OPENAI_MODEL_NAME \
             $DOCKERHUB_USERNAME/ros2ai:$distro \
-            bash -c "/ros_entrypoint.sh && source /root/.bashrc && cd $COLCON_WS && source ./install/setup.bash && $COLCON_WS/src/ros2ai/scripts/verification.sh"
+            bash -c "/ros_entrypoint.sh && source /home/ros2ai/.bashrc && cd $COLCON_WS && source ./install/setup.bash && $COLCON_WS/src/ros2ai/scripts/verification.sh"
     done
     echo "----- all images successfully verified!!! -----"
 }
