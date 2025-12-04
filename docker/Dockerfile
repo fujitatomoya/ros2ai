@@ -4,7 +4,7 @@
 # Usage:
 #  docker pull <user_name>/ros2ai:rolling
 #
-# Note: The container runs as non-root user 'ros2ai' (UID=1000, GID=1000) by default for security.
+# Note: The container runs as non-root user 'ros2ai' (UID=1234, GID=1234) by default for security.
 #       You can override the user at runtime with: docker run --user $(id -u):$(id -g) ...
 
 # An ARG declared before a FROM is outside of a build stage,
