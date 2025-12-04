@@ -29,22 +29,26 @@ page_number: true
 
 ---
 
-# [Let's see how this works!](https://github.com/fujitatomoya/ros2ai/assets/43395114/78a0799b-40e3-4dc8-99cb-488994e94769)
-
-<video controls="controls" width="1000" src="https://github.com/fujitatomoya/ros2ai/assets/43395114/78a0799b-40e3-4dc8-99cb-488994e94769">
+<video controls="controls" width="1000" src="https://github.com/user-attachments/assets/a5d4dda6-cd6b-41d1-8038-40e4906082b0">
 
 <!---
-# This needs to be updated once new features become available in rolling branch.
+# This demo only includes status check and query command.
 --->
 
 ---
 
-# [Docker Containers](https://hub.docker.com/repository/docker/tomoyafujita/ros2ai/tags?page=1&ordering=last_updated)
+<video controls="controls" width="1000" src="https://github.com/user-attachments/assets/6b6d8038-6d5a-4aaf-aace-bb9af4995145">
+
+<!---
+# Execution Demo only with multiple language.
+--->
+
+---
 
 <video controls="controls" width="1000" src="https://github.com/fujitatomoya/ros2ai/assets/43395114/2af4fd44-2ccf-472c-9153-c3c19987dc96">
 
 <!---
-# Comment Here
+# Docker container demonstration
 --->
 
 ---
@@ -125,7 +129,7 @@ i believe that is exactly where AI comes to play. instead of paying the resource
 
 ---
 
-# Proposals
+# Future Plans
 
 <!---
 # These are just ideas, not even sure that is doable.
@@ -133,17 +137,9 @@ i believe that is exactly where AI comes to play. instead of paying the resource
 
 ---
 
-# Parameter Adjustment
+# Model Comparison
 
-- more stable AI behavior.
-- Latency for user experience.
-- more...
-
----
-
-# Session Mode
-
-currently, `ros2ai` only supports single-shot completion API, that means we can not rely on the previous questions or answers to make further requests. e.g) "Is /chatter topic available?", "Subscribe it!". This ***it*** should be recognized in the same context or session. If this command is issued, prompt should be initiated to keep the session alive until the entire session is closed by the user.
+- Experimental performance and accuracy comparison over different LLM models.
 
 <!---
 # Comment Here
@@ -151,9 +147,46 @@ currently, `ros2ai` only supports single-shot completion API, that means we can 
 
 ---
 
-# Proxy Agent
+# API Parameter Adjustment
+
+- for more stable AI behavior.
+- performance and accuracy comparison.
+- latency for user experience.
+
+<!---
+# Comment Here
+--->
+
+---
+
+# Context-Awareness
+
+currently, `ros2ai` only supports single-shot completion API, that means we can not rely on the previous questions or answers to make further requests. e.g) "Is /chatter topic available?", "Subscribe it!". This ***it*** should be recognized in the same context or session. If this command is issued, prompt should be initiated to keep the session alive until the entire session is closed by the user.
+
+<!---
+# probably with LangChain::ConversationBufferMemory
+--->
+
+---
+
+# Daemonized Agent
 
 `ros2ai` can instantiate the agent daemon process as ROS 2 service, so that even other ROS 2 application running in the network can use OpenAI API via this proxy. those ROS 2 application can be agnostic from LLM specific APIs but ROS 2 service interface.
+
+<!---
+# Comment Here
+--->
+
+---
+
+# Audio Interface Support
+
+It would be really helpful to iterate via audio system instead of typing anymore.
+So the user can just talk to the `ros2ai` agent and then `ros2ai` answers any questions and executes the corresponding operations as user wants to do.
+
+<!---
+# Comment Here
+--->
 
 ---
 
@@ -168,7 +201,7 @@ we could take advantage of [Function Calling](https://platform.openai.com/docs/g
 
 ---
 
-# Fine-tuning (T.B.D)
+# Fine-tuning
 
 - ROS 2 general fine-tuning
   - this requires scaled training dataset for ROS 2, agnostic from user environment. could be distro specific. so that AI can response more precisely based on questions and requests.
@@ -176,5 +209,7 @@ we could take advantage of [Function Calling](https://platform.openai.com/docs/g
   - this dataset should be uploaded to help more user specific problems and questions. if this is doable, `ros2ai` agent can the 1st customer support for anyone?
 
 <!---
-# I am not even sure what could be done with it. need to come back here to consider the possibility.
+# what we need to do is automate this fine-tuning process based on user's environment including distro.
+# this seems like a mandatory, because user's environment is really different one to another.
+# data set creation must be done by each user, and automated by script or some tools.
 --->
