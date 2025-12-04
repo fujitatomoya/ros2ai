@@ -39,7 +39,7 @@ https://github.com/fujitatomoya/ros2ai/assets/43395114/78a0799b-40e3-4dc8-99cb-4
 see available images for [tomoyafujita/ros2ai@dockerhub](https://hub.docker.com/repository/docker/tomoyafujita/ros2ai/tags?page=1&ordering=last_updated)
 
 ```bash
-docker run -it --rm --net=host -e OPENAI_API_KEY=$OPENAI_API_KEY tomoyafujita/ros2ai:humble
+docker run -it --rm --net=host -e OPENAI_API_KEY=$OPENAI_API_KEY -e OPENAI_ENDPOINT=$OPENAI_ENDPOINT -e OPENAI_MODEL_NAME=$OPENAI_MODEL_NAME tomoyafujita/ros2ai:rolling
 ```
 
 > [!NOTE]
