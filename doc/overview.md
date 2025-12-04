@@ -150,7 +150,7 @@ i believe that is exactly where AI comes to play. instead of paying the resource
 # API Parameter Adjustment
 
 - for more stable AI behavior.
-- performance and accuracy compariwon.
+- performance and accuracy comparison.
 - latency for user experience.
 
 <!---
@@ -209,7 +209,7 @@ we could take advantage of [Function Calling](https://platform.openai.com/docs/g
   - this dataset should be uploaded to help more user specific problems and questions. if this is doable, `ros2ai` agent can the 1st customer support for anyone?
 
 <!---
-# what we need to do is automate this fune-tuning process based on user's environment including distro.
+# what we need to do is automate this fine-tuning process based on user's environment including distro.
 # this seems like a mandatory, because user's environment is really different one to another.
-# data set creation must be done by eash user, and automated by script or some tools.
+# data set creation must be done by each user, and automated by script or some tools.
 --->
