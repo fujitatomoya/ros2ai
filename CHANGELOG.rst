@@ -2,6 +2,12 @@
 Changelog for package ros2ai
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Use non-root user and group in default for Docker images. (`#75 <https://github.com/fujitatomoya/ros2ai/issues/75>`_)
+* update overview slidedeck. (`#73 <https://github.com/fujitatomoya/ros2ai/issues/73>`_)
+* make sure only single command starts with "ros2". (`#68 <https://github.com/fujitatomoya/ros2ai/issues/68>`_)
+
 0.1.1 (2025-11-06)
 ------------------
 * Support Kilted Kaiju with docker image. (`#67 <https://github.com/fujitatomoya/ros2ai/issues/67>`_)
