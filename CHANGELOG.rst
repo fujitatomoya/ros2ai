@@ -2,8 +2,8 @@
 Changelog for package ros2ai
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.2 (2025-12-08)
+------------------
 * Use non-root user and group in default for Docker images. (`#75 <https://github.com/fujitatomoya/ros2ai/issues/75>`_)
 * update overview slidedeck. (`#73 <https://github.com/fujitatomoya/ros2ai/issues/73>`_)
 * make sure only single command starts with "ros2". (`#68 <https://github.com/fujitatomoya/ros2ai/issues/68>`_)
