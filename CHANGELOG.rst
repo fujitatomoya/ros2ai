@@ -2,8 +2,8 @@
 Changelog for package ros2ai
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.3 (2025-12-12)
+------------------
 * remove Ollama dependency. (`#78 <https://github.com/fujitatomoya/ros2ai/issues/78>`_)
 * Correct the name of a dependent package (`#77 <https://github.com/fujitatomoya/ros2ai/issues/77>`_)
 
