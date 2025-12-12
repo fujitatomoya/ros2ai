@@ -15,7 +15,6 @@
 
   <exec_depend>curl</exec_depend>
   <exec_depend>python3-openai-pip</exec_depend>
-  <exec_depend>python3-ollama-pip</exec_depend>
   <exec_depend>python3-validators</exec_depend>
   <exec_depend>ros2cli</exec_depend>
 
