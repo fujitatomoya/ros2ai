@@ -2,6 +2,11 @@
 Changelog for package ros2ai
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* remove Ollama dependency. (`#78 <https://github.com/fujitatomoya/ros2ai/issues/78>`_)
+* Correct the name of a dependent package (`#77 <https://github.com/fujitatomoya/ros2ai/issues/77>`_)
+
 0.1.2 (2025-12-08)
 ------------------
 * Use non-root user and group in default for Docker images. (`#75 <https://github.com/fujitatomoya/ros2ai/issues/75>`_)
