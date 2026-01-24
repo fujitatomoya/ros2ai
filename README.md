@@ -34,6 +34,12 @@ https://github.com/fujitatomoya/ros2ai/assets/43395114/78a0799b-40e3-4dc8-99cb-4
 
 ## Installation
 
+### Binary
+
+```bash
+apt install ros-kilted-ros2ai
+```
+
 ### Docker Container
 
 see available images for [tomoyafujita/ros2ai@dockerhub](https://hub.docker.com/repository/docker/tomoyafujita/ros2ai/tags?page=1&ordering=last_updated)
