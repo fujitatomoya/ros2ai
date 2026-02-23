@@ -28,7 +28,7 @@ jobs:
         ROS_DISTRO: humble
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
       - name: Build with ROS humble
         shell: bash
         run: |
