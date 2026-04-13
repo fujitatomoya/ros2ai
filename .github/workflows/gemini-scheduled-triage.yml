@@ -40,7 +40,7 @@ jobs:
     steps:
       - name: 'Get repository labels'
         id: 'get_labels'
-        uses: 'actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd' # ratchet:actions/github-script@v8.0.0
+        uses: 'actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3' # ratchet:actions/github-script@v9.0.0
         with:
           # NOTE: we intentionally do not use the minted token. The default
           # GITHUB_TOKEN provided by the action has enough permissions to read
@@ -159,7 +159,7 @@ jobs:
         env:
           AVAILABLE_LABELS: '${{ needs.triage.outputs.available_labels }}'
           TRIAGED_ISSUES: '${{ needs.triage.outputs.triaged_issues }}'
-        uses: 'actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd' # ratchet:actions/github-script@v8.0.0
+        uses: 'actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3' # ratchet:actions/github-script@v9.0.0
         with:
           # Use the provided token so that the "gemini-cli" is the actor in the
           # log for what changed the labels.
