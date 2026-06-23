@@ -28,7 +28,7 @@ jobs:
         ROS_DISTRO: rolling
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@v7.0.0
       - name: Build with ROS rolling
         shell: bash
         run: |
