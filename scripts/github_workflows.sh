@@ -40,7 +40,11 @@ function install_prerequisites () {
     apt update && apt upgrade -y
     # TODO@fujitatomoya: should install openai via package.xml
     apt install -y pip
-    if [ $UBUNTU_VERSION == "24.04" ]; then
+    # Ubuntu 23.04 and later mark the base Python environment as externally
+    # managed (PEP 668), so `--break-system-packages` is required to pip install
+    # system-wide. Compare versions instead of matching a single release, so that
+    # newer Ubuntu bases (e.g. rolling moving from 24.04 to 26.04) keep working.
+    if [ "$(printf '%s\n' "23.04" "$UBUNTU_VERSION" | sort -V | head -n1)" = "23.04" ]; then
         pip install openai ollama validators --break-system-packages --ignore-installed
     else
         pip install openai ollama validators --ignore-installed
