@@ -24,14 +24,13 @@ setup(
     classifiers=[
         'Environment :: Console',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python',
     ],
     description='The OpenAI command for ROS 2 command line tools.',
     long_description="""\
         The package provides the AI command for the ROS 2 command line tools.""",
-    license='Apache License, Version 2.0',
-    tests_require=['pytest'],
+    license='Apache-2.0',
+    extras_require={'test': ['pytest']},
     entry_points={
         'ros2cli.command': [
             'ai = ros2ai.command.ai:AiCommand',
