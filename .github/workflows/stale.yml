@@ -15,7 +15,7 @@ jobs:
     name: 'Mark and close stale issues and PRs'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/stale@v10
+      - uses: actions/stale@v11
         with:
           # Stale configuration
           days-before-stale: 90
