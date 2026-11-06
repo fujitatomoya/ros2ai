@@ -15,6 +15,7 @@ ros_distros=(
     "humble"
     "jazzy"
     "kilted"
+    "lyrical"
     "rolling"
 )
 
