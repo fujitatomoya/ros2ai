@@ -1,0 +1,23 @@
+name: Nightly Build for lyrical
+
+on:
+  schedule:
+    - cron: '0 13 * * *'  # Runs every day at midnight, 13:00 UTC
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ros:lyrical
+      env:
+        ROS_DISTRO: lyrical
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v7.0.1
+      - name: Build with ROS lyrical
+        shell: bash
+        run: |
+          ./scripts/github_workflows.sh
