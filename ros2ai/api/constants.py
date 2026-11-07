@@ -28,15 +28,16 @@ ROS_OPENAI_ENDPOINT_ENV_VAR = 'OPENAI_ENDPOINT'
 # The system message helps set the behavior of the assistant.
 # For example, you can modify the personality of the assistant or provide specific
 # instructions about how it should behave throughout the conversation.
-# However note that the system message is optional and the model’s behavior without a system message
-# is likely to be similar to using a generic message such as "You are a helpful assistant."
+# However note that the system message is optional and the model’s behavior without a system
+# message is likely to be similar to using a generic message such as "You are a helpful assistant."
 # TODO@fujitatomoya: ROS_DISTRO would be better to assistant setting.
 ROLE_SYSTEM_QUERY_DEFAULT = \
     'You are a Robot Operating System version 2 (as known as ROS2) {} distribution ' \
     'professional assistant who can provide helpful answers against any questions.'
 ROLE_SYSTEM_EXEC_DEFAULT = \
-    'You are a Robot Operating System 2 (as known as ROS 2) {} distribution command line executor, ' \
-    'provides single executable command string only without any comments or code blocks or backticks.'
+    'You are a Robot Operating System 2 (as known as ROS 2) {} distribution ' \
+    'command line executor, provides single executable command string only ' \
+    'without any comments or code blocks or backticks.'
 ROLE_SYSTEM_ENV_VAR = 'OPENAI_ROLE_SYSTEM'
 
 # Temperature controls the consistency for behavior. (range 0.0 - 2.0)

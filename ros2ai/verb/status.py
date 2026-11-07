@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import ros2ai.api.config as config
-
-from ros2ai.api import curl_get_request, add_global_arguments
+from ros2ai.api.arguments import add_global_arguments
+from ros2ai.api.client import ChatCompletionClient, ChatCompletionParameters
+from ros2ai.api.config import OpenAiConfig
 from ros2ai.verb import VerbExtension
+
+# user message sent to check that the configured model answers
+AVAILABILITY_CHECK_MESSAGES = [{'role': 'user', 'content': 'Are you available?'}]
 
 
 class StatusVerb(VerbExtension):
@@ -38,36 +41,31 @@ class StatusVerb(VerbExtension):
             help='Prints all available models')
 
     def main(self, *, args):
-        openai_config = config.OpenAiConfig(args)
-        if (args.verbose is True):
-            openai_config.display_all()
+        config = OpenAiConfig(args)
+        if args.verbose:
+            config.display_all()
 
         # try to call OpenAI API with user configured setting
-        is_valid = openai_config.is_api_key_valid()
-
-        if is_valid:
-            if args.verbose:
-                print("[SUCCESS] Valid OpenAI API key.")
-        else:
-            print("[FAILURE] Invalid OpenAI API key.")
+        client = ChatCompletionClient(config)
+        if client.call(ChatCompletionParameters(
+                messages=AVAILABILITY_CHECK_MESSAGES, stream=False)):
+            client.print_result()
+        if client.get_result() is None:
+            print('[FAILURE] Invalid OpenAI API key.')
             return 1
+        if args.verbose:
+            print('[SUCCESS] Valid OpenAI API key.')
 
         # try to list the all models via user configured api key
-        headers = {"Authorization": "Bearer " + openai_config.get_value('api_key')}
-        can_get_models, model_list = curl_get_request(
-            openai_config.get_value('api_endpoint') + "/models",
-            headers
-        )
-
-        if can_get_models:
-            if args.verbose:
-                print("[SUCCESS] Retrieved list of models.")
-        else:
-            print("[FAILURE] Could not retrieved list of models.")
+        can_get_models, model_list = client.list_models()
+        if not can_get_models:
+            print('[FAILURE] Could not retrieved list of models.')
             return 1
+        if args.verbose:
+            print('[SUCCESS] Retrieved list of models.')
 
-        if (args.list is True):
-            print("Available Models:")
+        if args.list:
+            print('Available Models:')
             for model in model_list:
                 print(model)
 

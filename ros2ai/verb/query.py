@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ros2ai.api import add_global_arguments
-from ros2ai.api.config import get_role_system
+from ros2ai.api.arguments import add_global_arguments, add_role_argument
+from ros2ai.api.client import chat_messages, ChatCompletionClient, ChatCompletionParameters
+from ros2ai.api.config import OpenAiConfig, resolve_role_system
 from ros2ai.api.constants import ROLE_SYSTEM_QUERY_DEFAULT
-from ros2ai.api.openai import ChatCompletionClient, ChatCompletionParameters
-from ros2ai.api.utils import get_ros_distro
 from ros2ai.verb import VerbExtension
 
 
@@ -29,8 +28,8 @@ class QueryVerb(VerbExtension):
 
         # sub-command arguments
         parser.add_argument(
-            "questions", nargs="+", default=[],
-            help="Multiple sentences separated by spaces, enclosed in double quotes.")
+            'questions', nargs='+', default=[],
+            help='Multiple sentences separated by spaces, enclosed in double quotes.')
         parser.add_argument(
             '-n',
             '--nostream',
@@ -41,38 +40,22 @@ class QueryVerb(VerbExtension):
             '--verbose',
             action='store_true',
             help='Prints detailed response information (only available with nostream option)')
-        parser.add_argument(
-            '-r',
-            '--role',
-            metavar='<role>',
-            type=str,
-            default=None,
-            help='Define the prompt\'s system role.')
+        add_role_argument(parser)
 
     def main(self, *, args):
-        sentence = ''
-        if (args.questions):
-            sentence = " ".join(args.questions)
-        if (sentence == ''):
-            print('Dont be shy, put some questions! (I am not AI)') 
+        sentence = ' '.join(args.questions)
+        if sentence == '':
+            print('Dont be shy, put some questions! (I am not AI)')
 
-        distro = get_ros_distro()
-        system_role = get_role_system(default_role_system=ROLE_SYSTEM_QUERY_DEFAULT)
-        if args.role and args.role != system_role:
-            system_role = args.role
-        system_role = system_role.format(distro)
-        user_messages = [
-            {"role": "system", "content": f"{system_role}"},
-            {"role": "user", "content": f"{sentence}"}
-        ]
-
+        system_role = resolve_role_system(args, ROLE_SYSTEM_QUERY_DEFAULT)
         completion_params = ChatCompletionParameters(
-            messages = user_messages, stream = (not args.nostream))
-        client = ChatCompletionClient(args)
-        client.call(completion_params)
-        if (args.verbose is True and args.nostream is True):
+            messages=chat_messages(system_role, sentence), stream=not args.nostream)
+        client = ChatCompletionClient(OpenAiConfig(args))
+        if not client.call(completion_params):
+            return 1
+        if args.verbose and args.nostream:
             client.print_all()
-            print(f"System role:\n{system_role}")
+            print(f'System role:\n{system_role}')
         else:
             client.print_result()
         return 0

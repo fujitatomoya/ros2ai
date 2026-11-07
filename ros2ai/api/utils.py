@@ -12,43 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import signal
-import subprocess
 import os
 import re
+import signal
+import subprocess
 
-def run_command(*, command, argv = None, prefix = None):
+
+def run_executable(*, command) -> int:
     """
-    Execute command line interface with arguments. (Blocking)
+    Execute command line interface with arguments. (Interactive).
 
-    :command: commands to be executed, possibly comes with arguments.
-    :argv: extra arguments, added after command argument.
-    :prefix: prefix added to before command argument.
+    :param command: commands to be executed, possibly comes with arguments.
+    :return: the child process return code.
     """
-    if prefix is not None:
-        command = prefix + command
-    try:
-        result = subprocess.run(
-            command, shell = True, capture_output = True, text = True, check = True)
-        print(result.stdout)
-    except subprocess.CalledProcessError as ex:
-        print(f"Error executing the command. Return Code: {ex.returncode} {ex.stderr}")
-    except Exception as ex:
-        print(f"Subprocess generates exception: {ex}")
-
-def run_executable(*, command, argv = None, prefix=None) -> int:
-    """
-    Execute command line interface with arguments. (Interactive)
-
-    :command: commands to be executed, possibly comes with arguments.
-    :argv: extra arguments, added after command argument.
-    :prefix: prefix added to before command argument.
-    :return: the child process return code
-    """
-    if prefix is not None:
-        command = prefix + command
-
-    process = subprocess.Popen(command, shell = True)
+    process = subprocess.Popen(command, shell=True)
 
     # add signal handler for the parent process, so that we can finalize the child process
     # child process could be `ros2 run` process and that also should pass the signal to
@@ -72,11 +49,12 @@ def run_executable(*, command, argv = None, prefix=None) -> int:
             print(signal.strsignal(-process.returncode))
     return process.returncode
 
+
 def get_ros_distro() -> str:
     """
     Fetch ROS_DISTRO environmental variable.
 
-    :return: string of distribution name.
+    :return: string of distribution name, 'rolling' if not set.
     """
     distro = os.environ.get('ROS_DISTRO')
     if not distro:
@@ -84,72 +62,70 @@ def get_ros_distro() -> str:
         return 'rolling'
     return distro.lower()
 
+
 def truncate_before_substring(*, original, substring) -> str:
     """
-    Truncates a string by removing anything before a specified substring,
-    and removes the newline character at the end if it exists.
+    Truncate a string to the line that starts at a specified substring.
 
-    :original: original string to be truncated.
-    :substring: substring before which the string should be truncated.
-    :return: string with anything before the specified substring removed,
-      or the original string if the substring is not found.
+    Anything before the substring and anything after the end of that line is removed.
+
+    :param original: original string to be truncated.
+    :param substring: substring before which the string should be truncated.
+    :return: the line starting at the substring, or the original string if not found.
     """
     index = original.find(substring)
-    if index != -1:
-        # If found, truncate the string before the substring and return
-        truncated = original[index:]
-
-        # Find the index of newline character in the truncated text
-        newline_index = truncated.find('\n')
-        if newline_index != -1:
-            # If newline character exists, truncate the string after the newline character
-            truncated = truncated[:newline_index]
-
-        return truncated
-
-    else:
-        # If the substring is not found, return the original text
+    if index == -1:
         return original
+    return original[index:].split('\n', 1)[0]
+
 
 def remove_backticks(original) -> str:
     """
-    Removes all backticks from a given string.
+    Remove all backticks from a given string.
 
-    :original: The original input string.
+    :param original: The original input string.
     :return: The string without backticks.
     """
     return original.replace('`', '')
 
+
 def ros2_single_command(original) -> str:
     """
     Check if the command string contains only a single command (no command separators).
+
     If multiple commands are found, extract the first 'ros2' command and warn the user.
 
-    :original: The original command string to validate.
+    :param original: The original command string to validate.
     :return: The validated single command string, or the first 'ros2' command if multiple found.
     """
     # Common command separators in shell
     separators = [';', '&&', '||', '&', '|']
 
-    # Strip whitespace and check for separators
     cleaned_command = original.strip()
+    if not any(separator in cleaned_command for separator in separators):
+        return cleaned_command
 
-    # Check if command contains separators
-    has_separators = any(separator in cleaned_command for separator in separators)
+    print(f'Warning: Multiple commands detected in "{original}". '
+          "Only the first 'ros2' command will be executed.")
 
-    if has_separators:
-        print(f"Warning: Multiple commands detected in \"{original}\". Only the first 'ros2' command will be executed.")
+    # Split by all separators and find first ros2 command
+    pattern = '|'.join(re.escape(separator) for separator in separators)
+    commands = [command.strip() for command in re.split(pattern, cleaned_command)]
+    for command in commands:
+        if command.startswith('ros2'):
+            return command
 
-        # Split by all separators and find first ros2 command
-        pattern = '|'.join(re.escape(sep) for sep in separators)
-        commands = re.split(pattern, cleaned_command)
+    # If no ros2 command found, return the first command
+    return commands[0] if commands else ''
 
-        for cmd in commands:
-            cmd = cmd.strip()
-            if cmd.startswith('ros2'):
-                return cmd
 
-        # If no ros2 command found, return the first command
-        return commands[0].strip() if commands else ""
+def extract_ros2_command(response) -> str:
+    """
+    Extract the single ros2 command string from the chat completion response.
 
-    return cleaned_command
+    :param response: content of the chat completion.
+    :return: command string to be executed.
+    """
+    command = truncate_before_substring(original=response, substring='ros2')
+    command = remove_backticks(command)
+    return ros2_single_command(command)

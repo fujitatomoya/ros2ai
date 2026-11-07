@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ros2ai.api import add_global_arguments
-from ros2ai.api.config import get_role_system
+from ros2ai.api.arguments import add_global_arguments, add_role_argument
+from ros2ai.api.client import chat_messages, ChatCompletionClient, ChatCompletionParameters
+from ros2ai.api.config import OpenAiConfig, resolve_role_system
 from ros2ai.api.constants import ROLE_SYSTEM_EXEC_DEFAULT
-from ros2ai.api.openai import ChatCompletionClient, ChatCompletionParameters
-from ros2ai.api.utils import get_ros_distro, run_executable, truncate_before_substring, remove_backticks, ros2_single_command
+from ros2ai.api.utils import extract_ros2_command, run_executable
 from ros2ai.verb import VerbExtension
 
 
@@ -29,8 +29,8 @@ class ExecVerb(VerbExtension):
 
         # sub-command arguments
         parser.add_argument(
-            "request", nargs="+", default=[],
-            help="Multiple requests separated by spaces, enclosed in double quotes.")
+            'request', nargs='+', default=[],
+            help='Multiple requests separated by spaces, enclosed in double quotes.')
         parser.add_argument(
             '-d',
             '--debug',
@@ -40,45 +40,30 @@ class ExecVerb(VerbExtension):
             '--dry-run',
             action='store_true',
             help='Prints the command instead of executing it.')
-        parser.add_argument(
-            '-r',
-            '--role',
-            metavar='<role>',
-            type=str,
-            default=None,
-            help='Define the prompt\'s system role.')
+        add_role_argument(parser)
 
     def main(self, *, args):
-        request = ''
-        if (args.request):
-            request = " ".join(args.request)
-        if (request == ''):
+        request = ' '.join(args.request)
+        if request == '':
             print('Please insert your request! (I am not AI)')
 
-        distro = get_ros_distro()
-        system_role = get_role_system(default_role_system=ROLE_SYSTEM_EXEC_DEFAULT)
-        if args.role and args.role != system_role:
-            system_role = args.role
-        system_role = system_role.format(distro)
-        user_request = [
-            {"role": "system", "content": f"{system_role}"},
-            {"role": "user", "content": f"{request}"}
-        ]
-
-        completion_params = ChatCompletionParameters(messages = user_request, stream = False)
-        client = ChatCompletionClient(args)
-        client.call(completion_params)
-        if (args.debug is True):
+        system_role = resolve_role_system(args, ROLE_SYSTEM_EXEC_DEFAULT)
+        completion_params = ChatCompletionParameters(
+            messages=chat_messages(system_role, request), stream=False)
+        client = ChatCompletionClient(OpenAiConfig(args))
+        if not client.call(completion_params):
+            return 1
+        if args.debug:
             client.print_all()
-            print(f"System role:\n{system_role}")
-        # Extract command from the response
-        command_str = truncate_before_substring(
-            original = client.get_result(), substring = 'ros2')
-        command_str = remove_backticks(command_str)
-        command_str = ros2_single_command(command_str)
-        if not args.dry_run:
-            return_code = run_executable(command = command_str)
-            return return_code
-        else:
+            print(f'System role:\n{system_role}')
+
+        response = client.get_result()
+        if response is None:
+            # completion did not finish, the reason is printed
+            client.print_result()
+            return 1
+        command_str = extract_ros2_command(response)
+        if args.dry_run:
             print(f"Command Candidate: '{command_str}'")
             return 0
+        return run_executable(command=command_str)

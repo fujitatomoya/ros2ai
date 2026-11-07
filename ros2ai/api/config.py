@@ -12,140 +12,112 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import validators
 import os
 
 import ros2ai.api.constants as constants
+from ros2ai.api.utils import get_ros_distro
 
-from openai import OpenAI
+import validators
 
 
 def get_api_key() -> str:
     """
     Get OpenAI API Key from OPENAI_API_KEY environment variable.
 
-    :return: string of OpenAI API Key otherwise return None.
+    :return: string of OpenAI API Key, 'None' if not set.
     """
-    key_name = os.environ.get(constants.ROS_OPENAI_API_KEY_ENV_VAR, "None")
-    return key_name
+    return os.environ.get(constants.ROS_OPENAI_API_KEY_ENV_VAR, 'None')
+
 
 def get_ai_model() -> str:
     """
     Get OpenAI Model from OPENAI_MODEL_NAME environment variable.
 
-    :return: string of OpenAI Model.
+    :return: string of OpenAI Model, default model if not set.
     """
-    model_name = os.environ.get(constants.ROS_OPENAI_MODEL_NAME_ENV_VAR)
-    if not model_name:
-        return constants.ROS_OPENAI_DEFAULT_MODEL
-    else:
-        return model_name
+    return os.environ.get(constants.ROS_OPENAI_MODEL_NAME_ENV_VAR) or \
+        constants.ROS_OPENAI_DEFAULT_MODEL
+
 
 def get_endpoint_url() -> str:
     """
     Get OpenAI API service endpoint URL from OPENAI_ENDPOINT environment variable.
 
-    :return: string of OpenAI API service endpoint URL, could be None.
+    :return: string of OpenAI API service endpoint URL, default endpoint if not set or invalid.
     """
     url = os.environ.get(constants.ROS_OPENAI_ENDPOINT_ENV_VAR)
-    url_valid = False
+    if not url:
+        return constants.ROS_OPENAI_DEFAULT_ENDPOINT
     try:
         # this returns ValidationError with `http://localhost:11434/v1`
-        url_valid = validators.url(url)
+        if validators.url(url):
+            return url
     except Exception as e:
-        print(f"Error validating URL: {e}")
-        return constants.ROS_OPENAI_DEFAULT_ENDPOINT
-    if url and url_valid:
-        return url
-    else:
-        return constants.ROS_OPENAI_DEFAULT_ENDPOINT
+        print(f'Error validating URL: {e}')
+    return constants.ROS_OPENAI_DEFAULT_ENDPOINT
+
 
 def get_temperature() -> float:
     """
     Get temperature parameter to be used with OpenAI API.
 
-    :return: temperature, could be None.
+    :return: temperature, default temperature if not set.
     """
-    temperature = os.environ.get(constants.ROS_OPENAI_TEMPERATURE_ENV_VAR)
-    if not temperature:
-        return float(constants.ROS_OPENAI_DEFAULT_TEMPERATURE)
-    else:
-        return float(temperature)
+    return float(
+        os.environ.get(constants.ROS_OPENAI_TEMPERATURE_ENV_VAR) or
+        constants.ROS_OPENAI_DEFAULT_TEMPERATURE)
+
 
 def get_role_system(default_role_system: str = None) -> str:
+    """
+    Get the system role from OPENAI_ROLE_SYSTEM environment variable.
+
+    :param default_role_system: role returned if the environment variable is not set.
+    :return: string of the system role.
+    """
     return os.environ.get(constants.ROLE_SYSTEM_ENV_VAR, default_role_system)
 
+
+def resolve_role_system(args, default_role_system: str) -> str:
+    """
+    Resolve the system role for the prompt, formatted with the ROS distribution.
+
+    The command line argument prevails over the environment variable,
+    which prevails over the default role.
+
+    :param args: parsed arguments, `role` attribute is used if set.
+    :param default_role_system: role used if nothing else is configured.
+    :return: string of the system role with the distribution name applied.
+    """
+    role = get_role_system(default_role_system=default_role_system)
+    if args.role and args.role != role:
+        role = args.role
+    return role.format(get_ros_distro())
+
+
 class OpenAiConfig:
-    """
-    Collect all OpenAI API related configuration from user setting as key-value pair.
-    """
+    """Collect all OpenAI API related configuration from user setting as key-value pair."""
+
     def __init__(self, args):
-        self.config_pair = {}
-
-        # api key is mandatory, this could throw the exception if not set
-        self.config_pair['api_key'] = get_api_key()
-
-        # ai model is optional, command line argument prevails
-        self.config_pair['api_model'] = get_ai_model()
-        if args.model and args.model != self.config_pair['api_model']:
-            self.config_pair['api_model'] = args.model
-
-        # api endpoint is optional, command line argument prevails
-        self.config_pair['api_endpoint'] = get_endpoint_url()
-        if args.url and args.url != self.config_pair['api_endpoint']:
-            self.config_pair['api_endpoint'] = args.url
-
+        # api key is only required when accessing api.openai.com
+        # ai model and api endpoint are optional, command line argument prevails
         # api token is optional, only available via command line argument
-        self.config_pair['api_token'] = args.token
-
         # temperature is optional, only available via environmental variable
-        self.config_pair['api_temperature'] = get_temperature()
-
-    def set_value(self, key, value):
-        # Set a key-value pair
-        self.config_pair[key] = value
+        self._config = {
+            'api_key': get_api_key(),
+            'api_model': args.model or get_ai_model(),
+            'api_endpoint': args.url or get_endpoint_url(),
+            'api_token': args.token,
+            'api_temperature': get_temperature(),
+        }
 
     def get_value(self, key):
-        # Get the value for a given key
-        return self.config_pair.get(key, None)
-
-    def remove_key(self, key):
-        # Remove a key and its associated value
-        if key in self.config_pair:
-            del self.config_pair[key]
+        """Get the value for a given key, None if the key does not exist."""
+        return self._config.get(key, None)
 
     def display_all(self):
-        # Display all key-value pairs
-        for key, value in self.config_pair.items():
+        """Print all key-value pairs except the api key."""
+        for key, value in self._config.items():
             # we should never print the api key for the security
             if key != 'api_key':
-                print(f"----- {key}: {value}")
-
-    def is_api_key_valid(self):
-        # Validate api key, model and endpoint to post the API
-        client = OpenAI(
-            api_key=self.get_value('api_key'),
-            base_url=self.get_value('api_endpoint')
-        )
-        try:
-            completion = client.chat.completions.create(
-                model = self.get_value('api_model'),
-                messages = [
-                    {
-                        "role": "user",
-                        "content": "Are you available?",
-                    },
-                ],
-                temperature = self.get_value('api_temperature'),
-                max_tokens = self.get_value('api_token')
-            )
-        except Exception as e:
-            print('Failed to call OpenAI API: ' + str(e))
-            return False
-        else:
-            if (completion.choices[0].finish_reason != 'stop'):
-                print('Failed chat completion with: ' + completion.choices[0].finish_reason)
-                return False
-            else:
-                print(completion.choices[0].message.content)
-                return True
+                print(f'----- {key}: {value}')
