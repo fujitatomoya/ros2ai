@@ -50,6 +50,10 @@ function install_prerequisites () {
         pip install openai ollama validators --ignore-installed
     fi
     #apt install -y ros-${ROS_DISTRO}-desktop --no-install-recommends
+    # test dependencies, see package.xml
+    apt install -y python3-pytest python3-pytest-timeout \
+        ros-${ROS_DISTRO}-ament-copyright ros-${ROS_DISTRO}-ament-flake8 \
+        ros-${ROS_DISTRO}-ament-pep257 ros-${ROS_DISTRO}-ament-xmllint
     cd $there
 }
 
@@ -66,9 +70,17 @@ function build_colcon_package () {
     echo "[${FUNCNAME[0]}]: build ros2ai package."
     source /opt/ros/${ROS_DISTRO}/setup.bash
     cd ${COLCON_WORKSPACE}
-    # TODO@fujitatomoya: extend this with `colcon test`.
-    #  Once ollama is supported, we can integrate `verification.sh` via github workflow as 1st.
     colcon build --symlink-install --packages-select ros2ai
+}
+
+function test_colcon_package () {
+    trap exit_trap ERR
+    echo "[${FUNCNAME[0]}]: test ros2ai package."
+    source /opt/ros/${ROS_DISTRO}/setup.bash
+    cd ${COLCON_WORKSPACE}
+    # TODO@fujitatomoya: `verification.sh` requires the LLM API endpoint, that is not integrated.
+    colcon test --packages-select ros2ai --event-handlers console_cohesion+
+    colcon test-result --verbose
 }
 
 ########
@@ -90,5 +102,6 @@ get_ubuntu_version
 install_prerequisites
 setup_build_colcon_env
 build_colcon_package
+test_colcon_package
 
 exit 0

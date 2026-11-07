@@ -12,16 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ros2ai.api import add_global_arguments
-
+from ros2ai.api.arguments import add_global_arguments
 from ros2cli.command import add_subparsers_on_demand
 from ros2cli.command import CommandExtension
 
 
 class AiCommand(CommandExtension):
-    """
-    ROS 2 OpenAI command line interface. ('OPENAI_API_KEY' is required)
-    """
+    """ROS 2 OpenAI command line interface. ('OPENAI_API_KEY' is required)."""
 
     def add_arguments(self, parser, cli_name):
         # add global arguments
