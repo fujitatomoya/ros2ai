@@ -22,7 +22,7 @@ AVAILABILITY_CHECK_MESSAGES = [{'role': 'user', 'content': 'Are you available?'}
 
 
 class StatusVerb(VerbExtension):
-    """Check OpenAI API status and configuration."""
+    """Check LLM API status and configuration."""
 
     def add_arguments(self, parser, cli_name):
         # add global arguments
@@ -45,16 +45,16 @@ class StatusVerb(VerbExtension):
         if args.verbose:
             config.display_all()
 
-        # try to call OpenAI API with user configured setting
+        # try to call LLM API with user configured setting
         client = ChatCompletionClient(config)
         if client.call(ChatCompletionParameters(
                 messages=AVAILABILITY_CHECK_MESSAGES, stream=False)):
             client.print_result()
         if client.get_result() is None:
-            print('[FAILURE] Invalid OpenAI API key.')
+            print('[FAILURE] Invalid API key.')
             return 1
         if args.verbose:
-            print('[SUCCESS] Valid OpenAI API key.')
+            print('[SUCCESS] Valid API key.')
 
         # try to list the all models via user configured api key
         can_get_models, model_list = client.list_models()

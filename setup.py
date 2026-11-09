@@ -26,7 +26,7 @@ setup(
         'Intended Audience :: Developers',
         'Programming Language :: Python',
     ],
-    description='The OpenAI command for ROS 2 command line tools.',
+    description='The LLM (OpenAI, Anthropic, Ollama) command for ROS 2 command line tools.',
     long_description="""\
         The package provides the AI command for the ROS 2 command line tools.""",
     license='Apache-2.0',

@@ -9,7 +9,7 @@ page_number: true
 
 # ***ros2ai Next-Gen ROS 2 CLI***
 
-[ros2ai](https://github.com/fujitatomoya/ros2ai) is a <span style="color:red">next-generation</span> [ROS 2](https://github.com/ros2) command line interface extension with [OpenAI](https://openai.com/) and [Ollama](https://github.com/ollama/ollama)
+[ros2ai](https://github.com/fujitatomoya/ros2ai) is a <span style="color:red">next-generation</span> [ROS 2](https://github.com/ros2) command line interface extension with [OpenAI](https://openai.com/), [Anthropic](https://www.anthropic.com/) and [Ollama](https://github.com/ollama/ollama)
 
 <!---
 # Comment Here
@@ -62,6 +62,7 @@ page_number: true
 - Easy to use for everyone.
 - Dedicated / AI based Support (your own concierge)
 - Bridge / Proxy to [LLM](https://en.wikipedia.org/wiki/Large_language_model)
+- Agnostic from LLM service (OpenAI, Anthropic, Ollama or any OpenAI compatible endpoint)
 
 <!---
 # Comment Here
@@ -124,8 +125,8 @@ i believe that is exactly where AI comes to play. instead of paying the resource
 ---
 
 - `status` command is to check if `ros2ai` is configured properly.
-- `query` command is to ask any questions related to ROS 2. This is a single-shot completion, no session is supported currently. OpenAI system role attribution is set to default, but can be reconfigurable.
-- `exec` command is that AI executes the appropriate command based on the requests. OpenAI system role attribution is set to default, but can be reconfigurable.
+- `query` command is to ask any questions related to ROS 2. This is a single-shot completion, no session is supported currently. LLM system role attribution is set to default, but can be reconfigurable.
+- `exec` command is that AI executes the appropriate command based on the requests. LLM system role attribution is set to default, but can be reconfigurable.
 
 ---
 
@@ -171,7 +172,7 @@ currently, `ros2ai` only supports single-shot completion API, that means we can 
 
 # Daemonized Agent
 
-`ros2ai` can instantiate the agent daemon process as ROS 2 service, so that even other ROS 2 application running in the network can use OpenAI API via this proxy. those ROS 2 application can be agnostic from LLM specific APIs but ROS 2 service interface.
+`ros2ai` can instantiate the agent daemon process as ROS 2 service, so that even other ROS 2 application running in the network can use LLM API via this proxy. those ROS 2 application can be agnostic from LLM specific APIs but ROS 2 service interface.
 
 <!---
 # Comment Here

@@ -20,7 +20,7 @@ from ros2ai.verb import VerbExtension
 
 
 class QueryVerb(VerbExtension):
-    """Query a single completion to OpenAI API."""
+    """Query a single completion to LLM API."""
 
     def add_arguments(self, parser, cli_name):
         # add global arguments

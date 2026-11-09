@@ -21,7 +21,7 @@ from ros2ai.verb import VerbExtension
 
 
 class ExecVerb(VerbExtension):
-    """Execute a ROS 2 CLI based on user query to OpenAI API."""
+    """Execute a ROS 2 CLI based on user query to LLM API."""
 
     def add_arguments(self, parser, cli_name):
         # add global arguments
@@ -35,7 +35,7 @@ class ExecVerb(VerbExtension):
             '-d',
             '--debug',
             action='store_true',
-            help='Prints detailed information and behavior of OpenAI (debug use only)')
+            help='Prints detailed information and behavior of LLM (debug use only)')
         parser.add_argument(
             '--dry-run',
             action='store_true',

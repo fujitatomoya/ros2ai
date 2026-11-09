@@ -79,7 +79,7 @@ USER ${USERNAME}
 WORKDIR /home/${USERNAME}
 
 # Overwrite as environmental variable so that entrypoint can rely on those
-# OPENAI_API_KEY should not be included here, that is required for the runtime
+# ROS2AI_API_KEY should not be included here, that is required for the runtime
 ENV COLCON_WS=${COLCON_WS}
 ENV ROS_DISTRO=${ROS_DISTRO}
 #ENTRYPOINT ["/ros_entrypoint.sh"]

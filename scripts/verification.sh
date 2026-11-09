@@ -18,6 +18,12 @@ ROS_PYTHON_VERSION="${ROS_PYTHON_VERSION:-3}"
 ROS_AUTOMATIC_DISCOVERY_RANGE="${ROS_AUTOMATIC_DISCOVERY_RANGE:-SUBNET}"
 ROS_DISTRO="${ROS_DISTRO:-rolling}"
 
+# LLM API endpoint and model are taken from ROS2AI_ENDPOINT and ROS2AI_MODEL_NAME (or legacy
+# OPENAI_ENDPOINT and OPENAI_MODEL_NAME), falling back to OpenAI defaults. these are used to
+# verify the command line arguments as well.
+VERIFY_ENDPOINT="${ROS2AI_ENDPOINT:-${OPENAI_ENDPOINT:-https://api.openai.com/v1}}"
+VERIFY_MODEL="${ROS2AI_MODEL_NAME:-${OPENAI_MODEL_NAME:-gpt-5}}"
+
 # update this list to local verification
 # CAUTION: BE ADVISED THAT THIS WILL USE YOUR API KEY.
 command_list=(
@@ -26,14 +32,15 @@ command_list=(
     "ros2 ai status -h"
     "ros2 ai status"
     "ros2 ai status -vl"
+    "ros2 ai status -v -m $VERIFY_MODEL -u $VERIFY_ENDPOINT"
     "ros2 ai query -h"
     "ros2 ai query \"say hello\""
     "ros2 ai query \"say hello\" -nv"
-    "ros2 ai query \"say hello\" -m gpt-5 -t 1000"
-    "ros2 ai exec -m o3 \"give me all topics\""
-    "ros2 ai exec -m o4-mini \"give me all topics\""
-    "ros2 ai exec -m gpt-5 \"give me all topics\""
-    "ros2 ai exec -m gemini-2.5-pro \"give me all topics\""
+    "ros2 ai query \"say hello\" -m $VERIFY_MODEL -u $VERIFY_ENDPOINT -t 1000"
+    "ros2 ai query \"say hello\" -r \"You are a ROS 2 {} assistant, answer briefly.\""
+    "ros2 ai exec -h"
+    "ros2 ai exec \"give me all topics\""
+    "ros2 ai exec -m $VERIFY_MODEL -u $VERIFY_ENDPOINT \"give me all topics\""
     "ros2 ai exec \"give me all topics\" --dry-run"
     "ros2 ai exec \"give me all topics\" -d"
 )
@@ -62,9 +69,10 @@ function check_and_exit() {
 function check_user_setting () {
     trap exit_trap ERR
     echo "[${FUNCNAME[0]}]: checking user setting and configuration."
-    if [ -z "$OPENAI_API_KEY" ]; then
-        echo "OPENAI_API_KEY is not set, if accessing OpenAI it will fail to call API."
+    if [ -z "$ROS2AI_API_KEY" ] && [ -z "$OPENAI_API_KEY" ]; then
+        echo "ROS2AI_API_KEY is not set, if accessing OpenAI or Anthropic it will fail to call API."
     fi
+    echo "endpoint: $VERIFY_ENDPOINT, model: $VERIFY_MODEL"
     # check if ros2 environment setting (trap function can catch the error)
     ros2
 }

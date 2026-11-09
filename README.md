@@ -3,7 +3,7 @@
 
 # ros2ai 🤖
 
-[ros2ai](https://github.com/fujitatomoya/ros2ai) is a <span style="color:red">next-generation</span> [ROS 2](https://github.com/ros2) command line interface extension with [OpenAI](https://openai.com/) and [Ollama](https://github.com/ollama/ollama).
+[ros2ai](https://github.com/fujitatomoya/ros2ai) is a <span style="color:red">next-generation</span> [ROS 2](https://github.com/ros2) command line interface extension with [OpenAI](https://openai.com/), [Anthropic](https://www.anthropic.com/) and [Ollama](https://github.com/ollama/ollama).
 
 see [overview slide deck](https://raw.githack.com/fujitatomoya/ros2ai/rolling/doc/overview.html) for more information.
 
@@ -15,7 +15,7 @@ see [overview slide deck](https://raw.githack.com/fujitatomoya/ros2ai/rolling/do
 - Getting answers against the questions directly without browsing, clicking and typing many times.
 - Easy to use for everyone, especially for [ROS 2](https://github.com/ros2) beginners and students who do not really know [ros2cli](https://github.com/ros2/ros2cli).
 - Multiple language support.
-- Multiple LLMs support (with [OpenAI Python API](https://github.com/openai/openai-python))
+- Multiple LLMs support (with [OpenAI Python API](https://github.com/openai/openai-python), any OpenAI compatible endpoint such as [Anthropic](https://platform.claude.com/docs/en/api/openai-sdk) and [Ollama](https://github.com/ollama/ollama))
 
 ## Demo 🖥️
 
@@ -46,11 +46,11 @@ apt install ros-kilted-ros2ai
 see available images for [tomoyafujita/ros2ai@dockerhub](https://hub.docker.com/repository/docker/tomoyafujita/ros2ai/tags?page=1&ordering=last_updated)
 
 ```bash
-docker run -it --rm --net=host -e OPENAI_API_KEY=$OPENAI_API_KEY -e OPENAI_ENDPOINT=$OPENAI_ENDPOINT -e OPENAI_MODEL_NAME=$OPENAI_MODEL_NAME tomoyafujita/ros2ai:rolling
+docker run -it --rm --net=host -e ROS2AI_API_KEY=$ROS2AI_API_KEY -e ROS2AI_ENDPOINT=$ROS2AI_ENDPOINT -e ROS2AI_MODEL_NAME=$ROS2AI_MODEL_NAME tomoyafujita/ros2ai:rolling
 ```
 
 > [!NOTE]
-> `OPENAI_API_KEY` environmental variable is not required if using Ollama. And it is expecting that Ollama runs on the host system mostly, so that container is bound to the host network interface.
+> `ROS2AI_API_KEY` environmental variable is not required if using Ollama. And it is expecting that Ollama runs on the host system mostly, so that container is bound to the host network interface.
 
 https://github.com/fujitatomoya/ros2ai/assets/43395114/2af4fd44-2ccf-472c-9153-c3c19987dc96
 
@@ -88,19 +88,35 @@ colcon build --symlink-install --packages-select ros2ai
 
 ### Prerequisites
 
-As described in overview diagram, `ros2ai` uses only OpenAI Python API but backend implementation can be replaced with Ollama that provides the compatible API with OpenAI.
-User need to choose either of them is used by `ros2ai` as following configuration, otherwise it falls back to use OpenAI.
+As described in overview diagram, `ros2ai` uses only OpenAI Python API but backend implementation can be replaced with any LLM service that provides the compatible API with OpenAI, such as Anthropic and Ollama.
+User need to choose which of them is used by `ros2ai` as following configuration, otherwise it falls back to use OpenAI.
 
 - [OpenAI](https://openai.com/)
 
   `ros2ai` requires [OpenAI API key](https://platform.openai.com/docs/overview)
 
   ```bash
-  export OPENAI_API_KEY='your-api-key-here'
+  export ROS2AI_API_KEY='your-api-key-here'
   ```
 
   > [!CAUTION]
   > Do not share or expose your OpenAI API key.
+
+- [Anthropic](https://www.anthropic.com/)
+
+  `ros2ai` requires [Anthropic API key](https://platform.claude.com/settings/keys), the API is accessed via [OpenAI SDK compatibility](https://platform.claude.com/docs/en/api/openai-sdk).
+
+  ```bash
+  export ROS2AI_API_KEY='your-api-key-here'
+  export ROS2AI_ENDPOINT=https://api.anthropic.com/v1/
+  export ROS2AI_MODEL_NAME=claude-opus-5-5
+  ```
+
+  > [!CAUTION]
+  > Do not share or expose your Anthropic API key.
+
+  > [!NOTE]
+  > Anthropic accepts the temperature between 0.0 and 1.0 only, the `ros2ai` default (1.0) works with every Claude model.
 
 - [Ollama](https://github.com/ollama/ollama)
 
@@ -121,13 +137,15 @@ User need to choose either of them is used by `ros2ai` as following configuratio
 
 | environmental variable | default                     | Note                   |
 | :----------------------| :-------------------------- | :--------------------- |
-| OPENAI_API_KEY         | None.                       | Required for OpenAI    |
-| OPENAI_MODEL_NAME      | 'gpt-4o'                    | AI model to be used. e.g) llama3.1 (Ollama) |
-| OPENAI_ENDPOINT        | 'https://api.openai.com/v1' | API endpoint URL. e.g) http://127.0.0.1:11434/v1 (Ollama) |
-| OPENAI_TEMPERATURE     | 1.0                         | [OpenAI temperature](https://platform.openai.com/docs/guides/text-generation/how-should-i-set-the-temperature-parameter) |
+| ROS2AI_API_KEY         | None.                       | Required for OpenAI and Anthropic |
+| ROS2AI_MODEL_NAME      | 'gpt-5'                     | AI model to be used. e.g) claude-opus-5-5 (Anthropic), llama3.1 (Ollama) |
+| ROS2AI_ENDPOINT        | 'https://api.openai.com/v1' | API endpoint URL. e.g) https://api.anthropic.com/v1/ (Anthropic), http://127.0.0.1:11434/v1 (Ollama) |
+| ROS2AI_TEMPERATURE     | 1.0                         | [OpenAI temperature](https://platform.openai.com/docs/guides/text-generation/how-should-i-set-the-temperature-parameter), 0.0 - 1.0 for Anthropic |
+| ROS2AI_ROLE_SYSTEM     | built-in system role        | System role for the prompt, `{}` is replaced with the ROS distribution name |
 
 > [!NOTE]
 > These are optional environmental variables. if not set, default value will be used.
+> The legacy `OPENAI_API_KEY`, `OPENAI_MODEL_NAME`, `OPENAI_ENDPOINT`, `OPENAI_TEMPERATURE` and `OPENAI_ROLE_SYSTEM` are still honored when the corresponding `ROS2AI_*` variable is not set.
 
 ### Examples
 
@@ -137,17 +155,22 @@ User need to choose either of them is used by `ros2ai` as following configuratio
 
   ```bash
   ### OpenAI configuration
-  export OPENAI_API_KEY=<YOUR_API_KEY>
-  export OPENAI_MODEL_NAME=gpt-4
-  export OPENAI_ENDPOINT=https://api.openai.com/v1
+  export ROS2AI_API_KEY=<YOUR_API_KEY>
+  export ROS2AI_MODEL_NAME=gpt-5
+  export ROS2AI_ENDPOINT=https://api.openai.com/v1
+
+  ### Anthropic configuration
+  export ROS2AI_API_KEY=<YOUR_API_KEY>
+  export ROS2AI_MODEL_NAME=claude-opus-5-5
+  export ROS2AI_ENDPOINT=https://api.anthropic.com/v1/
 
   ### Ollama
-  unset OPENAI_API_KEY
-  export OPENAI_MODEL_NAME=llama3.1
-  export OPENAI_ENDPOINT=http://127.0.0.1:11434/v1
+  unset ROS2AI_API_KEY
+  export ROS2AI_MODEL_NAME=llama3.1
+  export ROS2AI_ENDPOINT=http://127.0.0.1:11434/v1
   ```
 
-- `status` to check OpenAI API key is valid.
+- `status` to check API key and configuration are valid.
 
   ```bash
   root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai status -v
@@ -155,7 +178,7 @@ User need to choose either of them is used by `ros2ai` as following configuratio
   ----- api_endpoint: https://api.openai.com/v1
   ----- api_token: None
   As an artificial intelligence, I do not have a physical presence, so I can't be "in service" in the traditional sense. But I am available to assist you 24/7.
-  [SUCCESS] Valid OpenAI API key.
+  [SUCCESS] Valid API key.
   ```
 
 - `query` to ask any questions to ROS 2 assistant.
@@ -214,7 +237,9 @@ User need to choose either of them is used by `ros2ai` as following configuratio
 - [ROSCon 2024 Presentation Slide](https://raw.githack.com/fujitatomoya/ros2ai/rolling/doc/ROSCon2024_ros2ai.html)
 - [OpenAI API documentation](https://platform.openai.com/docs)
 - [OpenAI Python API](https://github.com/openai/openai-python)
+- [Anthropic API documentation](https://platform.claude.com/docs)
+- [Anthropic OpenAI SDK compatibility](https://platform.claude.com/docs/en/api/openai-sdk)
 - [Ollama](https://github.com/ollama/ollama)
 - [Ollama Python API](https://github.com/ollama/ollama-python)
 
-Special thanks to [OpenAI API](https://platform.openai.com/) and [Ollama](https://github.com/ollama/ollama) 🌟🌟🌟
+Special thanks to [OpenAI API](https://platform.openai.com/), [Anthropic API](https://platform.claude.com/) and [Ollama](https://github.com/ollama/ollama) 🌟🌟🌟
