@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+from urllib.parse import urlparse
 
 import ros2ai.api.constants as constants
 from ros2ai.api.utils import get_ros_distro
@@ -20,62 +21,87 @@ from ros2ai.api.utils import get_ros_distro
 import validators
 
 
+def get_env(name: str, legacy_name: str, default=None):
+    """
+    Get the configuration from the environment variable.
+
+    :param name: name of the environment variable.
+    :param legacy_name: name of the legacy environment variable, used if `name` is not set.
+    :param default: value returned if none of the environment variables is set.
+    :return: value of the environment variable, or the default.
+    """
+    return os.environ.get(name) or os.environ.get(legacy_name) or default
+
+
 def get_api_key() -> str:
     """
-    Get OpenAI API Key from OPENAI_API_KEY environment variable.
+    Get API Key from ROS2AI_API_KEY (or legacy OPENAI_API_KEY) environment variable.
 
-    :return: string of OpenAI API Key, 'None' if not set.
+    :return: string of API Key, 'None' if not set.
     """
-    return os.environ.get(constants.ROS_OPENAI_API_KEY_ENV_VAR, 'None')
+    return get_env(
+        constants.ROS2AI_API_KEY_ENV_VAR, constants.ROS_OPENAI_API_KEY_ENV_VAR, 'None')
 
 
 def get_ai_model() -> str:
     """
-    Get OpenAI Model from OPENAI_MODEL_NAME environment variable.
+    Get model from ROS2AI_MODEL_NAME (or legacy OPENAI_MODEL_NAME) environment variable.
 
-    :return: string of OpenAI Model, default model if not set.
+    :return: string of model name, default model if not set.
     """
-    return os.environ.get(constants.ROS_OPENAI_MODEL_NAME_ENV_VAR) or \
-        constants.ROS_OPENAI_DEFAULT_MODEL
+    return get_env(
+        constants.ROS2AI_MODEL_NAME_ENV_VAR, constants.ROS_OPENAI_MODEL_NAME_ENV_VAR,
+        constants.ROS2AI_DEFAULT_MODEL)
 
 
 def get_endpoint_url() -> str:
     """
-    Get OpenAI API service endpoint URL from OPENAI_ENDPOINT environment variable.
+    Get API endpoint URL from ROS2AI_ENDPOINT (or legacy OPENAI_ENDPOINT) environment variable.
 
-    :return: string of OpenAI API service endpoint URL, default endpoint if not set or invalid.
+    :return: string of API endpoint URL, default endpoint if not set or invalid.
     """
-    url = os.environ.get(constants.ROS_OPENAI_ENDPOINT_ENV_VAR)
+    url = get_env(constants.ROS2AI_ENDPOINT_ENV_VAR, constants.ROS_OPENAI_ENDPOINT_ENV_VAR)
     if not url:
-        return constants.ROS_OPENAI_DEFAULT_ENDPOINT
+        return constants.ROS2AI_DEFAULT_ENDPOINT
     try:
         # this returns ValidationError with `http://localhost:11434/v1`
         if validators.url(url):
             return url
     except Exception as e:
         print(f'Error validating URL: {e}')
-    return constants.ROS_OPENAI_DEFAULT_ENDPOINT
+    return constants.ROS2AI_DEFAULT_ENDPOINT
 
 
 def get_temperature() -> float:
     """
-    Get temperature parameter to be used with OpenAI API.
+    Get temperature from ROS2AI_TEMPERATURE (or legacy OPENAI_TEMPERATURE) environment variable.
 
     :return: temperature, default temperature if not set.
     """
-    return float(
-        os.environ.get(constants.ROS_OPENAI_TEMPERATURE_ENV_VAR) or
-        constants.ROS_OPENAI_DEFAULT_TEMPERATURE)
+    return float(get_env(
+        constants.ROS2AI_TEMPERATURE_ENV_VAR, constants.ROS_OPENAI_TEMPERATURE_ENV_VAR,
+        constants.ROS2AI_DEFAULT_TEMPERATURE))
 
 
 def get_role_system(default_role_system: str = None) -> str:
     """
-    Get the system role from OPENAI_ROLE_SYSTEM environment variable.
+    Get the system role from ROS2AI_ROLE_SYSTEM (or legacy OPENAI_ROLE_SYSTEM) variable.
 
     :param default_role_system: role returned if the environment variable is not set.
     :return: string of the system role.
     """
-    return os.environ.get(constants.ROLE_SYSTEM_ENV_VAR, default_role_system)
+    return get_env(
+        constants.ROS2AI_ROLE_SYSTEM_ENV_VAR, constants.ROLE_SYSTEM_ENV_VAR, default_role_system)
+
+
+def is_anthropic_endpoint(url: str) -> bool:
+    """
+    Check if the API endpoint URL is the Anthropic API.
+
+    :param url: API endpoint URL.
+    :return: True if the endpoint host is the Anthropic API.
+    """
+    return urlparse(url).hostname == constants.ROS_ANTHROPIC_API_HOST
 
 
 def resolve_role_system(args, default_role_system: str) -> str:
@@ -96,10 +122,10 @@ def resolve_role_system(args, default_role_system: str) -> str:
 
 
 class OpenAiConfig:
-    """Collect all OpenAI API related configuration from user setting as key-value pair."""
+    """Collect all LLM API related configuration from user setting as key-value pair."""
 
     def __init__(self, args):
-        # api key is only required when accessing api.openai.com
+        # api key is only required when accessing the managed service such as OpenAI or Anthropic
         # ai model and api endpoint are optional, command line argument prevails
         # api token is optional, only available via command line argument
         # temperature is optional, only available via environmental variable

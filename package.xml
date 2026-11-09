@@ -4,7 +4,7 @@
   <name>ros2ai</name>
   <version>0.1.3</version>
   <description>
-    The OpenAI command for ROS 2 command line tools.
+    The LLM (OpenAI, Anthropic, Ollama) command for ROS 2 command line tools.
   </description>
 
   <maintainer email="tomoya.fujita825@gmail.com">Tomoya Fujita</maintainer>

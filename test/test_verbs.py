@@ -51,9 +51,10 @@ class FakeOpenAI:
     model_ids = ['model-a', 'model-b']
     instances = []
 
-    def __init__(self, api_key=None, base_url=None, **kwargs):
+    def __init__(self, api_key=None, base_url=None, default_headers=None, **kwargs):
         self.api_key = api_key
         self.base_url = base_url
+        self.default_headers = default_headers
         self.create_calls = []
         self.chat = SimpleNamespace(completions=SimpleNamespace(create=self._create))
         self.models = SimpleNamespace(list=self._list_models)
@@ -95,6 +96,11 @@ def fake_openai(monkeypatch):
     monkeypatch.setattr(subprocess, 'run', fake_run)
 
     for name in (
+        constants.ROS2AI_API_KEY_ENV_VAR,
+        constants.ROS2AI_MODEL_NAME_ENV_VAR,
+        constants.ROS2AI_ENDPOINT_ENV_VAR,
+        constants.ROS2AI_TEMPERATURE_ENV_VAR,
+        constants.ROS2AI_ROLE_SYSTEM_ENV_VAR,
         constants.ROS_OPENAI_API_KEY_ENV_VAR,
         constants.ROS_OPENAI_MODEL_NAME_ENV_VAR,
         constants.ROS_OPENAI_ENDPOINT_ENV_VAR,
@@ -102,7 +108,7 @@ def fake_openai(monkeypatch):
         constants.ROLE_SYSTEM_ENV_VAR,
     ):
         monkeypatch.delenv(name, raising=False)
-    monkeypatch.setenv(constants.ROS_OPENAI_API_KEY_ENV_VAR, 'sk-test')
+    monkeypatch.setenv(constants.ROS2AI_API_KEY_ENV_VAR, 'sk-test')
     monkeypatch.setenv('ROS_DISTRO', 'rolling')
     return FakeOpenAI
 
@@ -119,11 +125,12 @@ def test_status(fake_openai, capsys):
     assert out == 'fake answer\n'
     client = fake_openai.instances[0]
     assert client.api_key == 'sk-test'
-    assert client.base_url == constants.ROS_OPENAI_DEFAULT_ENDPOINT
+    assert client.base_url == constants.ROS2AI_DEFAULT_ENDPOINT
+    assert client.default_headers is None
     call = client.create_calls[0]
-    assert call['model'] == constants.ROS_OPENAI_DEFAULT_MODEL
+    assert call['model'] == constants.ROS2AI_DEFAULT_MODEL
     assert call['messages'] == [{'role': 'user', 'content': 'Are you available?'}]
-    assert call['temperature'] == constants.ROS_OPENAI_DEFAULT_TEMPERATURE
+    assert call['temperature'] == constants.ROS2AI_DEFAULT_TEMPERATURE
     assert call['max_tokens'] is None
 
 
@@ -132,11 +139,11 @@ def test_status_verbose_list(fake_openai, capsys):
     out = capsys.readouterr().out
     assert out == (
         '----- api_model: gpt-x\n'
-        f'----- api_endpoint: {constants.ROS_OPENAI_DEFAULT_ENDPOINT}\n'
+        f'----- api_endpoint: {constants.ROS2AI_DEFAULT_ENDPOINT}\n'
         '----- api_token: 7\n'
         '----- api_temperature: 1.0\n'
         'fake answer\n'
-        '[SUCCESS] Valid OpenAI API key.\n'
+        '[SUCCESS] Valid API key.\n'
         '[SUCCESS] Retrieved list of models.\n'
         'Available Models:\n'
         'model-a\n'
@@ -151,8 +158,8 @@ def test_status_invalid_key(fake_openai, capsys):
     fake_openai.error = RuntimeError('boom')
     assert run_verb(StatusVerb(), []) == 1
     out = capsys.readouterr().out
-    assert 'Failed to call OpenAI API: boom' in out
-    assert '[FAILURE] Invalid OpenAI API key.' in out
+    assert 'Failed to call LLM API: boom' in out
+    assert '[FAILURE] Invalid API key.' in out
 
 
 def test_status_not_finished(fake_openai, capsys):
@@ -160,7 +167,7 @@ def test_status_not_finished(fake_openai, capsys):
     assert run_verb(StatusVerb(), []) == 1
     out = capsys.readouterr().out
     assert 'Failed chat completion with: length' in out
-    assert '[FAILURE] Invalid OpenAI API key.' in out
+    assert '[FAILURE] Invalid API key.' in out
 
 
 def test_query_stream(fake_openai, capsys):
@@ -203,7 +210,7 @@ def test_query_role_argument_and_env(fake_openai, monkeypatch):
 
 
 def test_query_global_arguments(fake_openai, monkeypatch):
-    monkeypatch.setenv(constants.ROS_OPENAI_TEMPERATURE_ENV_VAR, '0.3')
+    monkeypatch.setenv(constants.ROS2AI_TEMPERATURE_ENV_VAR, '0.3')
     argv = ['hello', '-m', 'llama3.1', '-u', 'http://127.0.0.1:11434/v1', '-t', '100']
     assert run_verb(QueryVerb(), argv) == 0
     client = fake_openai.instances[0]
@@ -249,3 +256,37 @@ def test_exec_role_argument(fake_openai):
     assert run_verb(ExecVerb(), ['hello', '-r', 'exec {} role']) == 0
     call = fake_openai.instances[0].create_calls[0]
     assert call['messages'][0] == {'role': 'system', 'content': 'exec rolling role'}
+
+
+def test_anthropic_endpoint_headers(fake_openai):
+    argv = ['hello', '-u', constants.ROS_ANTHROPIC_DEFAULT_ENDPOINT, '-m', 'claude-opus-5-5']
+    assert run_verb(QueryVerb(), argv) == 0
+    client = fake_openai.instances[0]
+    assert client.api_key == 'sk-test'
+    assert client.base_url == constants.ROS_ANTHROPIC_DEFAULT_ENDPOINT
+    assert client.default_headers == {
+        'x-api-key': 'sk-test',
+        'anthropic-version': constants.ROS_ANTHROPIC_API_VERSION,
+    }
+    assert client.create_calls[0]['model'] == 'claude-opus-5-5'
+
+
+def test_legacy_environment_variables(fake_openai, monkeypatch):
+    monkeypatch.delenv(constants.ROS2AI_API_KEY_ENV_VAR)
+    monkeypatch.setenv(constants.ROS_OPENAI_API_KEY_ENV_VAR, 'sk-legacy')
+    monkeypatch.setenv(constants.ROS_OPENAI_MODEL_NAME_ENV_VAR, 'llama3.1')
+    monkeypatch.setenv(
+        constants.ROS_OPENAI_ENDPOINT_ENV_VAR, constants.ROS_OLLAMA_DEFAULT_ENDPOINT)
+    assert run_verb(QueryVerb(), ['hello']) == 0
+    client = fake_openai.instances[0]
+    assert client.api_key == 'sk-legacy'
+    assert client.base_url == constants.ROS_OLLAMA_DEFAULT_ENDPOINT
+    assert client.default_headers is None
+    assert client.create_calls[0]['model'] == 'llama3.1'
+    # generic variables prevail over the legacy ones
+    monkeypatch.setenv(constants.ROS2AI_MODEL_NAME_ENV_VAR, 'gemma4')
+    monkeypatch.setenv(constants.ROS2AI_ENDPOINT_ENV_VAR, 'http://10.0.0.1:11434/v1')
+    assert run_verb(QueryVerb(), ['hello']) == 0
+    client = fake_openai.instances[1]
+    assert client.base_url == 'http://10.0.0.1:11434/v1'
+    assert client.create_calls[0]['model'] == 'gemma4'

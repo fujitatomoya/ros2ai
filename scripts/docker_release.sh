@@ -85,9 +85,10 @@ function verify_images() {
     echo "[${FUNCNAME[0]}]: verifying ros2ai docker container images."
     for distro in "${ros_distros[@]}"; do
         echo "----- $distro image verifying"
-        docker run -it --rm -e OPENAI_API_KEY=$OPENAI_API_KEY \
-            -e OPENAI_ENDPOINT=$OPENAI_ENDPOINT \
-            -e OPENAI_MODEL_NAME=$OPENAI_MODEL_NAME \
+        docker run -it --rm --net=host \
+            -e ROS2AI_API_KEY=$ROS2AI_API_KEY \
+            -e ROS2AI_ENDPOINT=$ROS2AI_ENDPOINT \
+            -e ROS2AI_MODEL_NAME=$ROS2AI_MODEL_NAME \
             $DOCKERHUB_USERNAME/ros2ai:$distro \
             bash -c "/ros_entrypoint.sh && source /home/ros2ai/.bashrc && cd $COLCON_WS && source ./install/setup.bash && $COLCON_WS/src/ros2ai/scripts/verification.sh"
     done
@@ -144,7 +145,7 @@ fi
 # verifying images
 if [ "$verify_image" = true ]; then
     # TODO@fujitatomoya: need to check if ollama system service is running OR
-    #  check if OPENAI_API_KEY env is set, otherwise return error
+    #  check if ROS2AI_API_KEY env is set, otherwise return error
     verify_images
 fi
 

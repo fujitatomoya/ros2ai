@@ -17,20 +17,27 @@ import ros2ai.api.constants as constants
 
 def add_global_arguments(parser):
     """Add the arguments shared by the `ai` command and every verb."""
-    default_models = constants.ROS_OPENAI_DEFAULT_MODEL + ', ' + constants.ROS_OLLAMA_DEFAULT_MODEL
+    default_models = ', '.join([
+        constants.ROS_OPENAI_DEFAULT_MODEL,
+        constants.ROS_ANTHROPIC_DEFAULT_MODEL,
+        constants.ROS_OLLAMA_DEFAULT_MODEL])
+    default_endpoints = ', '.join([
+        constants.ROS_OPENAI_DEFAULT_ENDPOINT,
+        constants.ROS_ANTHROPIC_DEFAULT_ENDPOINT,
+        constants.ROS_OLLAMA_DEFAULT_ENDPOINT])
     parser.add_argument(
         '-m', '--model', metavar='<model>', type=str, default=None,
-        help=f'Set OpenAI API model (e.g {default_models}) or '
-             f'use {constants.ROS_OPENAI_MODEL_NAME_ENV_VAR} environment variable. '
+        help=f'Set LLM model (e.g {default_models}) or '
+             f'use {constants.ROS2AI_MODEL_NAME_ENV_VAR} environment variable. '
              '(argument prevails)')
     parser.add_argument(
         '-u', '--url', metavar='<url>', type=str, default=None,
-        help=f'Set OpenAI API endpoint URL (e.g {constants.ROS_OPENAI_DEFAULT_ENDPOINT}) or '
-             f'use {constants.ROS_OPENAI_ENDPOINT_ENV_VAR} environment variable. '
+        help=f'Set LLM API endpoint URL (e.g {default_endpoints}) or '
+             f'use {constants.ROS2AI_ENDPOINT_ENV_VAR} environment variable. '
              '(argument prevails)')
     parser.add_argument(
         '-t', '--token', metavar='<token>', type=int, default=None,
-        help='Set OpenAI API maximum token (default %(default)s)')
+        help='Set LLM API maximum token (default %(default)s)')
 
 
 def add_role_argument(parser):

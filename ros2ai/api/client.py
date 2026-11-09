@@ -17,7 +17,8 @@ from typing import List, Optional, Tuple
 
 from openai import OpenAI
 
-from ros2ai.api.config import OpenAiConfig
+from ros2ai.api.config import is_anthropic_endpoint, OpenAiConfig
+import ros2ai.api.constants as constants
 
 
 @dataclass
@@ -43,13 +44,21 @@ def chat_messages(system_role: str, user_content: str) -> list:
 
 
 class ChatCompletionClient:
-    """Single chat completion client w/o session to call OpenAI API."""
+    """Single chat completion client w/o session to call LLM API via OpenAI Python API."""
 
     def __init__(self, config: OpenAiConfig):
         self._config = config
+        default_headers = None
+        if is_anthropic_endpoint(config.get_value('api_endpoint')):
+            # Anthropic native endpoints (e.g /v1/models) validate `x-api-key` instead of bearer
+            default_headers = {
+                'x-api-key': config.get_value('api_key'),
+                'anthropic-version': constants.ROS_ANTHROPIC_API_VERSION,
+            }
         self._client = OpenAI(
             api_key=config.get_value('api_key'),
-            base_url=config.get_value('api_endpoint'))
+            base_url=config.get_value('api_endpoint'),
+            default_headers=default_headers)
         self._completion = None
         self._stream = True
 
@@ -70,7 +79,7 @@ class ChatCompletionClient:
                 temperature=self._config.get_value('api_temperature'),
                 max_tokens=self._config.get_value('api_token'))
         except Exception as e:
-            print('Failed to call OpenAI API: ' + str(e))
+            print('Failed to call LLM API: ' + str(e))
             return False
         return True
 

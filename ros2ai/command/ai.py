@@ -18,7 +18,11 @@ from ros2cli.command import CommandExtension
 
 
 class AiCommand(CommandExtension):
-    """ROS 2 OpenAI command line interface. ('OPENAI_API_KEY' is required)."""
+    """
+    ROS 2 LLM command line interface. ('ROS2AI_API_KEY' is required for OpenAI and Anthropic).
+
+    Any LLM service that provides the OpenAI compatible API can be configured.
+    """
 
     def add_arguments(self, parser, cli_name):
         # add global arguments

@@ -12,18 +12,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This is only required when actually accessing api.openai.com
+# ros2ai configuration is agnostic from the LLM managed service, any endpoint that provides
+# the OpenAI compatible API can be configured with the following environment variables.
+# The API key is only required when accessing the managed services such as OpenAI or Anthropic.
+ROS2AI_API_KEY_ENV_VAR = 'ROS2AI_API_KEY'
+ROS2AI_MODEL_NAME_ENV_VAR = 'ROS2AI_MODEL_NAME'
+ROS2AI_ENDPOINT_ENV_VAR = 'ROS2AI_ENDPOINT'
+ROS2AI_TEMPERATURE_ENV_VAR = 'ROS2AI_TEMPERATURE'
+ROS2AI_ROLE_SYSTEM_ENV_VAR = 'ROS2AI_ROLE_SYSTEM'
+
+# Legacy environment variables, still honored when the ROS2AI_* variables are not set.
 ROS_OPENAI_API_KEY_ENV_VAR = 'OPENAI_API_KEY'
-
-ROS_OPENAI_DEFAULT_MODEL = 'gpt-5'
-ROS_OLLAMA_DEFAULT_MODEL = 'llama3.1'
-
 ROS_OPENAI_MODEL_NAME_ENV_VAR = 'OPENAI_MODEL_NAME'
+ROS_OPENAI_ENDPOINT_ENV_VAR = 'OPENAI_ENDPOINT'
+ROS_OPENAI_TEMPERATURE_ENV_VAR = 'OPENAI_TEMPERATURE'
+ROLE_SYSTEM_ENV_VAR = 'OPENAI_ROLE_SYSTEM'
 
+# Known LLM managed services and their defaults.
+ROS_OPENAI_DEFAULT_MODEL = 'gpt-5'
 ROS_OPENAI_DEFAULT_ENDPOINT = 'https://api.openai.com/v1'
+ROS_ANTHROPIC_DEFAULT_MODEL = 'claude-opus-5-5'
+ROS_ANTHROPIC_DEFAULT_ENDPOINT = 'https://api.anthropic.com/v1/'
+ROS_OLLAMA_DEFAULT_MODEL = 'llama3.1'
 ROS_OLLAMA_DEFAULT_ENDPOINT = 'http://127.0.0.1:11434/v1'
 
-ROS_OPENAI_ENDPOINT_ENV_VAR = 'OPENAI_ENDPOINT'
+# Anthropic validates the API key with `x-api-key` header on the native endpoints (e.g /v1/models),
+# this header is added when the configured endpoint is the Anthropic API.
+ROS_ANTHROPIC_API_HOST = 'api.anthropic.com'
+ROS_ANTHROPIC_API_VERSION = '2023-06-01'
+
+# OpenAI is the default service when nothing is configured.
+ROS2AI_DEFAULT_MODEL = ROS_OPENAI_DEFAULT_MODEL
+ROS2AI_DEFAULT_ENDPOINT = ROS_OPENAI_DEFAULT_ENDPOINT
 
 # The system message helps set the behavior of the assistant.
 # For example, you can modify the personality of the assistant or provide specific
@@ -38,11 +58,10 @@ ROLE_SYSTEM_EXEC_DEFAULT = \
     'You are a Robot Operating System 2 (as known as ROS 2) {} distribution ' \
     'command line executor, provides single executable command string only ' \
     'without any comments or code blocks or backticks.'
-ROLE_SYSTEM_ENV_VAR = 'OPENAI_ROLE_SYSTEM'
 
-# Temperature controls the consistency for behavior. (range 0.0 - 2.0)
-# The lower the temperature is, the more deterministic behavior that OpenAI does.
-# The higher temperature is, the more creative OpenAI can be.
+# Temperature controls the consistency for behavior.
+# (range 0.0 - 2.0 for OpenAI, 0.0 - 1.0 for Anthropic)
+# The lower the temperature is, the more deterministic behavior that LLM does.
+# The higher temperature is, the more creative LLM can be.
 # Temperature value based on the desired trade-off between coherence and creativity.
-ROS_OPENAI_DEFAULT_TEMPERATURE = 1.0
-ROS_OPENAI_TEMPERATURE_ENV_VAR = 'OPENAI_TEMPERATURE'
+ROS2AI_DEFAULT_TEMPERATURE = 1.0
