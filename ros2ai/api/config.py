@@ -94,6 +94,26 @@ def get_role_system(default_role_system: str = None) -> str:
         constants.ROS2AI_ROLE_SYSTEM_ENV_VAR, constants.ROLE_SYSTEM_ENV_VAR, default_role_system)
 
 
+def get_context_limit() -> int:
+    """
+    Get the context limit (estimated tokens) from ROS2AI_CONTEXT_LIMIT environment variable.
+
+    :return: the limit, default limit if not set or invalid.
+    """
+    value = os.environ.get(constants.ROS2AI_CONTEXT_LIMIT_ENV_VAR)
+    if not value:
+        return constants.ROS2AI_CONTEXT_LIMIT
+    try:
+        limit = int(value)
+        if limit > 0:
+            return limit
+    except ValueError:
+        pass
+    print(f'Invalid {constants.ROS2AI_CONTEXT_LIMIT_ENV_VAR}: {value}, '
+          f'use default {constants.ROS2AI_CONTEXT_LIMIT}')
+    return constants.ROS2AI_CONTEXT_LIMIT
+
+
 def is_anthropic_endpoint(url: str) -> bool:
     """
     Check if the API endpoint URL is the Anthropic API.

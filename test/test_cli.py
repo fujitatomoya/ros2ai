@@ -37,6 +37,7 @@ def test_defaults():
     assert args.dry_run is False
     assert args.status is False
     assert args.list_models is False
+    assert args.continue_session is False
 
 
 def test_request():
@@ -75,6 +76,15 @@ def test_request_arguments():
     assert args.role == 'r'
 
 
+def test_continue_arguments():
+    args = parse(['-c', 'subscribe it'])
+    assert args.request == ['subscribe it']
+    assert args.continue_session is True
+    args = parse(['--continue'])
+    assert args.request == []
+    assert args.continue_session is True
+
+
 def test_status_arguments():
     args = parse(['-s'])
     assert args.request == []
@@ -103,7 +113,8 @@ def test_ros2_ai_help(capsys, monkeypatch):
     assert '<request>' in out
     for option in (
             '-m', '--model', '-u', '--url', '-t', '--token', '-r', '--role', '-v', '--verbose',
-            '-y', '--yes', '--dry-run', '-s', '--status', '-l', '--list-models'):
+            '-y', '--yes', '--dry-run', '-s', '--status', '-l', '--list-models',
+            '-c', '--continue'):
         assert option in out
     assert 'examples:' in out
     # no sub-commands
@@ -111,11 +122,19 @@ def test_ros2_ai_help(capsys, monkeypatch):
     assert 'query' not in out
 
 
-def test_ros2_ai_without_request_prints_help(capsys, monkeypatch):
+def test_ros2_ai_without_request_starts_session(capsys, monkeypatch, tmp_path):
     from ros2cli.cli import main
     monkeypatch.setattr(sys, 'argv', ['ros2', 'ai'])
+    monkeypatch.setenv('ROS2AI_SESSION_FILE', str(tmp_path / 'session.json'))
+    monkeypatch.setenv('ROS2AI_API_KEY', 'sk-test')
+    monkeypatch.setattr('sys.stdin', type('Stdin', (), {'isatty': lambda self: False})())
+
+    def no_input(prompt):
+        print(prompt, end='')
+        raise EOFError()
+    monkeypatch.setattr('builtins.input', no_input)
     assert main(argv=['ai']) == 0
     out = capsys.readouterr().out
-    assert out.startswith('usage: ')
-    assert '<request>' in out
-    assert 'examples:' in out
+    assert out.startswith('ros2ai interactive session (model: ')
+    assert 'Type /help for the commands' in out
+    assert out.endswith('ros2ai> \n')

@@ -22,6 +22,8 @@ from ros2ai.api import agent as agent_module
 from ros2ai.api.agent import Agent
 from ros2ai.api.agent import AgentOptions
 from ros2ai.api.agent import confirm_execution
+from ros2ai.api.agent import context_exceeded
+from ros2ai.api.session import Conversation
 from ros2ai.api.tools import ToolCommand
 from ros2ai.api.tools import ToolError
 from ros2ai.api.tools import ToolPolicy
@@ -103,7 +105,7 @@ def options(**kwargs):
 def test_answer_without_tools(capsys, no_confirm):
     client = FakeClient([message(content='just an answer')])
     agent = Agent(client, FakeProvider(), options(), confirm=no_confirm)
-    assert agent.run('system', 'request') == 0
+    assert agent.run(Conversation('system'), 'request') == 0
     assert capsys.readouterr().out == 'just an answer\n'
     assert agent.steps == 1
     params = client.calls[0]
@@ -118,7 +120,7 @@ def test_answer_without_tools(capsys, no_confirm):
 def test_streamed_answer(capsys, no_confirm):
     client = FakeClient([message(content='streamed answer')])
     agent = Agent(client, FakeProvider(), AgentOptions(), confirm=no_confirm)
-    assert agent.run('system', 'request') == 0
+    assert agent.run(Conversation('system'), 'request') == 0
     # printed once by the client, not again by the agent
     assert capsys.readouterr().out == 'streamed answer\n'
     assert client.calls[0].stream is True
@@ -130,7 +132,7 @@ def test_streamed_tool_loop(capsys, no_confirm):
         message(content='done'),
     ])
     agent = Agent(client, FakeProvider(), AgentOptions(), confirm=no_confirm)
-    assert agent.run('system', 'request') == 0
+    assert agent.run(Conversation('system'), 'request') == 0
     assert capsys.readouterr().out == 'looking\n[ros2ai]: ros2 read\noutput of read\ndone\n'
     assert all(parameters.stream for parameters in client.calls)
 
@@ -138,7 +140,7 @@ def test_streamed_tool_loop(capsys, no_confirm):
 def test_answer_without_tools_offered(capsys, no_confirm):
     client = FakeClient([message(content='plain answer')])
     agent = Agent(client, FakeProvider(), options(), confirm=no_confirm)
-    assert agent.run('system', 'request', tools=False) == 0
+    assert agent.run(Conversation('system'), 'request', tools=False) == 0
     assert capsys.readouterr().out == 'plain answer\n'
     assert client.calls[0].tools is None
 
@@ -150,7 +152,7 @@ def test_read_only_tool_loop(capsys, no_confirm):
     ])
     provider = FakeProvider()
     agent = Agent(client, provider, options(), confirm=no_confirm)
-    assert agent.run('system', 'request') == 0
+    assert agent.run(Conversation('system'), 'request') == 0
     assert provider.executed == [['ros2', 'read', 'a']]
     assert capsys.readouterr().out == '[ros2ai]: ros2 read a\noutput of read\ndone\n'
     # conversation sent on the second step includes the assistant and the tool messages
@@ -168,7 +170,7 @@ def test_assistant_content_kept_with_tool_calls(no_confirm):
         message(content='done'),
     ])
     agent = Agent(client, FakeProvider(), options(), confirm=no_confirm)
-    assert agent.run('system', 'request') == 0
+    assert agent.run(Conversation('system'), 'request') == 0
     assert client.calls[1].messages[2]['content'] == 'let me check'
 
 
@@ -180,7 +182,7 @@ def test_parallel_tool_calls(no_confirm):
     ])
     provider = FakeProvider()
     agent = Agent(client, provider, options(), confirm=no_confirm)
-    assert agent.run('system', 'request') == 0
+    assert agent.run(Conversation('system'), 'request') == 0
     assert provider.executed == [['ros2', 'read'], ['ros2', 'read', 'b']]
     tool_messages = client.calls[1].messages[3:]
     assert [m['tool_call_id'] for m in tool_messages] == ['c1', 'c2']
@@ -198,7 +200,7 @@ def test_mutating_tool_confirmed(capsys):
         asked.append(command)
         return True
     agent = Agent(client, provider, options(), confirm=confirm)
-    assert agent.run('system', 'request') == 0
+    assert agent.run(Conversation('system'), 'request') == 0
     assert asked == ['ros2 write x']
     assert provider.executed == [['ros2', 'write', 'x']]
 
@@ -210,7 +212,7 @@ def test_mutating_tool_declined(capsys):
     ])
     provider = FakeProvider()
     agent = Agent(client, provider, options(), confirm=lambda command: False)
-    assert agent.run('system', 'request') == 0
+    assert agent.run(Conversation('system'), 'request') == 0
     assert provider.executed == []
     assert client.calls[1].messages[3] == {
         'role': 'tool', 'tool_call_id': 'c1',
@@ -225,7 +227,7 @@ def test_mutating_tool_auto_approve(no_confirm):
     ])
     provider = FakeProvider()
     agent = Agent(client, provider, options(auto_approve=True), confirm=no_confirm)
-    assert agent.run('system', 'request') == 0
+    assert agent.run(Conversation('system'), 'request') == 0
     assert provider.executed == [['ros2', 'write']]
 
 
@@ -239,7 +241,7 @@ def test_long_running_tool_runs_foreground(monkeypatch, capsys):
         agent_module, 'run_executable', lambda *, command: executed.append(command) or 42)
     provider = FakeProvider()
     agent = Agent(client, provider, options(), confirm=lambda command: True)
-    assert agent.run('system', 'request') == 42
+    assert agent.run(Conversation('system'), 'request') == 42
     assert executed == [['ros2', 'spin', 'talker']]
     assert provider.executed == []
     assert len(client.calls) == 1
@@ -255,7 +257,7 @@ def test_dry_run_executes_read_only_prints_candidates_and_stops(capsys, no_confi
     ])
     provider = FakeProvider()
     agent = Agent(client, provider, options(dry_run=True), confirm=no_confirm)
-    assert agent.run('system', 'request') == 0
+    assert agent.run(Conversation('system'), 'request') == 0
     assert provider.executed == [['ros2', 'read']]
     assert len(client.calls) == 2
     assert agent.candidates == 2
@@ -268,7 +270,7 @@ def test_dry_run_executes_read_only_prints_candidates_and_stops(capsys, no_confi
 def test_dry_run_without_candidates_finishes(capsys, no_confirm):
     client = FakeClient([message(tool_calls=[tool_call('c1', 'read', {})]), message(content='ok')])
     agent = Agent(client, FakeProvider(), options(dry_run=True), confirm=no_confirm)
-    assert agent.run('system', 'request') == 0
+    assert agent.run(Conversation('system'), 'request') == 0
     assert agent.candidates == 0
     assert capsys.readouterr().out.endswith('ok\n')
 
@@ -282,7 +284,7 @@ def test_tool_errors_returned_to_model(capsys, no_confirm):
     ])
     provider = FakeProvider()
     agent = Agent(client, provider, options(), confirm=no_confirm)
-    assert agent.run('system', 'request') == 0
+    assert agent.run(Conversation('system'), 'request') == 0
     assert provider.executed == []
     tool_messages = client.calls[1].messages[3:]
     assert tool_messages[0]['content'] == "error: unknown tool 'nope'"
@@ -301,7 +303,7 @@ def test_output_truncated_for_model_but_printed(capsys, no_confirm):
     client = FakeClient([message(tool_calls=[tool_call('c1', 'read', {})]), message(content='')])
     agent = Agent(
         client, LongOutputProvider(), options(output_limit=30), confirm=no_confirm)
-    assert agent.run('system', 'request') == 0
+    assert agent.run(Conversation('system'), 'request') == 0
     content = client.calls[1].messages[3]['content']
     assert content == 'x' * 20 + '\n... [70 characters truncated] ...\n' + 'x' * 10
     assert 'x' * 100 in capsys.readouterr().out
@@ -315,14 +317,14 @@ def test_empty_output(no_confirm):
 
     client = FakeClient([message(tool_calls=[tool_call('c1', 'read', {})]), message(content='')])
     agent = Agent(client, EmptyProvider(), options(), confirm=no_confirm)
-    assert agent.run('system', 'request') == 0
+    assert agent.run(Conversation('system'), 'request') == 0
     assert client.calls[1].messages[3]['content'] == '(no output)'
 
 
 def test_max_steps(capsys, no_confirm):
     client = FakeClient([message(tool_calls=[tool_call('c1', 'read', {})])] * 5)
     agent = Agent(client, FakeProvider(), options(max_steps=3), confirm=no_confirm)
-    assert agent.run('system', 'request') == 1
+    assert agent.run(Conversation('system'), 'request') == 1
     assert len(client.calls) == 3
     assert agent.steps == 3
     assert 'Reached the maximum number of steps (3).' in capsys.readouterr().out
@@ -330,7 +332,7 @@ def test_max_steps(capsys, no_confirm):
 
 def test_api_failure(capsys, no_confirm):
     agent = Agent(FakeClient([]), FakeProvider(), options(), confirm=no_confirm)
-    assert agent.run('system', 'request') == 1
+    assert agent.run(Conversation('system'), 'request') == 1
     assert agent.steps == 1
 
 
@@ -345,7 +347,7 @@ def test_not_finished(capsys, no_confirm):
     agent = Agent(
         NotFinishedClient([message(content='x')]), FakeProvider(), options(),
         confirm=no_confirm)
-    assert agent.run('system', 'request') == 1
+    assert agent.run(Conversation('system'), 'request') == 1
     assert capsys.readouterr().out == 'not finished\n'
 
 
@@ -353,7 +355,7 @@ def test_verbose_prints(capsys, no_confirm):
     client = FakeClient([message(tool_calls=[tool_call('c1', 'read', {'args': ['a']})]),
                          message(content='done')])
     agent = Agent(client, FakeProvider(), options(verbose=True), confirm=no_confirm)
-    assert agent.run('system', 'request') == 0
+    assert agent.run(Conversation('system'), 'request') == 0
     out = capsys.readouterr().out
     assert out.count('printed all') == 2
     assert 'Tool call: read({"args": ["a"]})\n' in out
@@ -405,3 +407,153 @@ def test_confirm_execution_eof(monkeypatch):
         raise EOFError()
     monkeypatch.setattr('builtins.input', fake_input)
     assert confirm_execution('ros2 write') is False
+
+
+def test_history_kept_between_runs(no_confirm):
+    client = FakeClient([
+        message(content='looking', tool_calls=[tool_call('c1', 'read', {'args': ['a']})]),
+        message(content='the topic exists'),
+        message(content='subscribed'),
+    ])
+    agent = Agent(client, FakeProvider(), options(), confirm=no_confirm)
+    conversation = Conversation('system')
+    assert agent.run(conversation, 'do we have it?') == 0
+    assert conversation.turns == 1
+    assert conversation.active is False
+    assert agent.run(conversation, 'subscribe it') == 0
+    assert conversation.turns == 2
+    # the follow-up request carries the whole previous turn including the final answer
+    assert client.calls[2].messages == [
+        {'role': 'system', 'content': 'system'},
+        {'role': 'user', 'content': 'do we have it?'},
+        {'role': 'assistant', 'content': 'looking', 'tool_calls': [{
+            'id': 'c1', 'type': 'function',
+            'function': {'name': 'read', 'arguments': '{"args": ["a"]}'}}]},
+        {'role': 'tool', 'tool_call_id': 'c1', 'content': 'output of read'},
+        {'role': 'assistant', 'content': 'the topic exists'},
+        {'role': 'user', 'content': 'subscribe it'},
+    ]
+    assert conversation.messages() == client.calls[2].messages + [
+        {'role': 'assistant', 'content': 'subscribed'}]
+
+
+def test_failed_run_discards_the_turn(no_confirm):
+    conversation = Conversation('system')
+    agent = Agent(FakeClient([]), FakeProvider(), options(), confirm=no_confirm)
+    assert agent.run(conversation, 'request') == 1
+    assert conversation.turns == 0
+    assert conversation.active is False
+    assert conversation.messages() == [{'role': 'system', 'content': 'system'}]
+
+
+def test_failed_step_discards_the_whole_turn(no_confirm):
+    conversation = Conversation('system')
+    client = FakeClient([message(tool_calls=[tool_call('c1', 'read', {})])])
+    agent = Agent(client, FakeProvider(), options(), confirm=no_confirm)
+    assert agent.run(conversation, 'request') == 1
+    assert conversation.turns == 0
+    assert conversation.messages() == [{'role': 'system', 'content': 'system'}]
+
+
+def test_long_running_tool_recorded_in_history(monkeypatch, capsys):
+    client = FakeClient([
+        message(tool_calls=[
+            tool_call('c1', 'spin', {'args': ['talker']}), tool_call('c2', 'read', {})]),
+        message(content='the talker ran'),
+    ])
+    monkeypatch.setattr(agent_module, 'run_executable', lambda *, command: 3)
+    agent = Agent(client, FakeProvider(), options(), confirm=lambda command: True)
+    conversation = Conversation('system')
+    assert agent.run(conversation, 'run the talker') == 3
+    assert conversation.turns == 1
+    assert conversation.messages()[3:] == [
+        {'role': 'tool', 'tool_call_id': 'c1',
+         'content': 'the command was executed in the foreground and exited with code 3.'},
+        {'role': 'tool', 'tool_call_id': 'c2',
+         'content': 'not executed: the previous command ended the request.'},
+    ]
+    assert agent.run(conversation, 'what happened?') == 0
+    assert client.calls[1].messages[-1] == {'role': 'user', 'content': 'what happened?'}
+    assert client.calls[1].messages[4]['tool_call_id'] == 'c2'
+
+
+def test_max_steps_keeps_the_turn(no_confirm):
+    client = FakeClient([message(tool_calls=[tool_call('c1', 'read', {})])] * 3)
+    agent = Agent(client, FakeProvider(), options(max_steps=2), confirm=no_confirm)
+    conversation = Conversation('system')
+    assert agent.run(conversation, 'request') == 1
+    assert conversation.turns == 1
+    assert conversation.messages()[-1]['role'] == 'tool'
+
+
+def test_dry_run_keeps_the_turn(no_confirm):
+    client = FakeClient([message(tool_calls=[tool_call('c1', 'write', {})])])
+    agent = Agent(client, FakeProvider(), options(dry_run=True), confirm=no_confirm)
+    conversation = Conversation('system')
+    assert agent.run(conversation, 'request') == 0
+    assert conversation.turns == 1
+    assert conversation.messages()[-1]['content'] == 'dry-run: the command was not executed.'
+
+
+class ContextLimitedClient(FakeClient):
+    """Fail with a context length error while the messages exceed the limit."""
+
+    def __init__(self, messages, limit):
+        super().__init__(messages)
+        self._limit = limit
+        self._error = None
+
+    def call(self, parameters):
+        if len(parameters.messages) > self._limit:
+            self.calls.append(parameters)
+            self._error = RuntimeError(
+                "This model's maximum context length is 10 tokens, reduce the messages")
+            print('Failed to call LLM API: ' + str(self._error))
+            return False
+        self._error = None
+        return super().call(parameters)
+
+    def get_error(self):
+        return self._error
+
+
+def test_context_exceeded_drops_oldest_turns(capsys, no_confirm):
+    client = ContextLimitedClient([message(content='answer')], limit=4)
+    agent = Agent(client, FakeProvider(), options(), confirm=no_confirm)
+    conversation = Conversation('system')
+    for index in range(3):
+        conversation.begin(f'request {index}')
+        conversation.append({'role': 'assistant', 'content': f'answer {index}'})
+        conversation.commit()
+    assert agent.run(conversation, 'request') == 0
+    assert agent.steps == 1
+    assert conversation.dropped == 2
+    # 7 messages, then 5, then 3 (system, oldest kept turn, request) which fit the limit
+    assert [len(parameters.messages) for parameters in client.calls] == [8, 6, 4]
+    assert client.calls[-1].messages[1] == {'role': 'user', 'content': 'request 2'}
+    out = capsys.readouterr().out
+    assert out.count('[ros2ai]: the context length is exceeded, the oldest turn is dropped.') == 2
+    assert out.endswith('answer\n')
+
+
+def test_context_exceeded_without_history_fails(no_confirm):
+    client = ContextLimitedClient([message(content='never')], limit=1)
+    agent = Agent(client, FakeProvider(), options(), confirm=no_confirm)
+    conversation = Conversation('system')
+    assert agent.run(conversation, 'request') == 1
+    assert len(client.calls) == 1
+    assert conversation.turns == 0
+
+
+@pytest.mark.parametrize('text, expected', [
+    ("This model's maximum context length is 8192 tokens", True),
+    ('context_length_exceeded', True),
+    ('prompt is too long: 213463 tokens > 200000 maximum', True),
+    ('the context window is full', True),
+    ('model does not support tools', False),
+    ('connection refused', False),
+    (None, False),
+])
+def test_context_exceeded(text, expected):
+    error = RuntimeError(text) if text is not None else None
+    assert context_exceeded(error) is expected

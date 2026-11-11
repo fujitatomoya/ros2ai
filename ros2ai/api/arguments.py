@@ -20,6 +20,8 @@ examples:
   ros2 ai "how can I check the available topics?"
   ros2 ai "give me all topics"
   ros2 ai "publish hello message on /chatter topic" -y
+  ros2 ai "do we have /chatter topic?" && ros2 ai -c "subscribe to it"
+  ros2 ai     (interactive session, the context is kept until the session ends)
   ros2 ai --status --list-models
 """
 
@@ -37,7 +39,8 @@ def add_arguments(parser):
     parser.add_argument(
         'request', nargs='*', default=[], metavar='<request>',
         help='Question or operation request to the ROS 2 assistant, '
-             'multiple words are joined with spaces, or enclosed in double quotes.')
+             'multiple words are joined with spaces, or enclosed in double quotes. '
+             'The interactive session starts if omitted.')
     parser.add_argument(
         '-m', '--model', metavar='<model>', type=str, default=None,
         help=f'Set LLM model (e.g {default_models}) or '
@@ -63,6 +66,10 @@ def add_arguments(parser):
         action='store_true',
         help='Prints detailed information: configuration, system role, tool calls and results, '
              'and raw completions (only available with nostream option).')
+    parser.add_argument(
+        '-c', '--continue', dest='continue_session',
+        action='store_true',
+        help='Continues the previous session, the context of the previous requests is kept.')
     parser.add_argument(
         '-y', '--yes',
         action='store_true',

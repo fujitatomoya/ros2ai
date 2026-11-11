@@ -19,8 +19,9 @@ import json
 import sys
 from typing import Callable, List, Optional
 
-from ros2ai.api.client import chat_messages, ChatCompletionClient, ChatCompletionParameters
+from ros2ai.api.client import ChatCompletionClient, ChatCompletionParameters
 import ros2ai.api.constants as constants
+from ros2ai.api.session import Conversation
 from ros2ai.api.tools import ToolCommand, ToolError, ToolPolicy, ToolProvider, ToolResult
 from ros2ai.api.utils import run_executable, truncate_output
 
@@ -59,6 +60,16 @@ def confirm_execution(command: str) -> bool:
     return answer.strip().lower() in ('y', 'yes')
 
 
+def context_exceeded(error) -> bool:
+    """Check if the API error reports that the context length of the model is exceeded."""
+    if error is None:
+        return False
+    text = str(error).lower()
+    return (
+        'context_length' in text or 'context length' in text or 'context window' in text
+        or 'too long' in text or ('maximum' in text and 'tokens' in text))
+
+
 class _Exit(Exception):
     """Internal: stop the agent loop with the return code."""
 
@@ -86,39 +97,60 @@ class Agent:
         # number of command candidates printed instead of being executed (dry-run)
         self.candidates = 0
 
-    def run(self, system_role: str, request: str, *, tools: bool = True) -> int:
+    def run(self, conversation: Conversation, request: str, *, tools: bool = True) -> int:
         """
         Process the user request until the model answers without tool calls.
 
-        :param system_role: content of the system message.
+        The request starts a turn of the conversation, the previous turns give the context.
+        The turn is kept in the conversation when the request is processed, so that the
+        following requests can refer to it, and discarded if the API call fails.
+
+        :param conversation: conversation of the session, the system role and the history.
         :param request: content of the user message.
         :param tools: offer the tools of the provider to the model, a plain completion if False.
         :return: 0 on success, 1 on failure, or the return code of a long-running command.
         """
-        messages = chat_messages(system_role, request)
+        conversation.begin(request)
         tools = self._provider.definitions() if tools else None
         self.steps = 0
         self.candidates = 0
-        try:
-            for _ in range(self._options.max_steps):
-                message = self._complete(messages, tools)
-                if message is None:
-                    return 1
-                tool_calls = getattr(message, 'tool_calls', None) or []
-                if not tool_calls:
-                    if not self._options.stream:
-                        # the streamed content has been printed already
-                        print(message.content or '')
-                    return 0
-                messages.append(_assistant_message(message))
-                for tool_call in tool_calls:
-                    messages.append(self._handle(tool_call))
-                if self.candidates:
-                    # dry-run: the commands that change the system are printed, stop here
-                    return 0
-        except _Exit as e:
-            return e.returncode
+        for _ in range(self._options.max_steps):
+            message = self._complete(conversation, tools)
+            if message is None:
+                conversation.abort()
+                return 1
+            tool_calls = getattr(message, 'tool_calls', None) or []
+            if not tool_calls:
+                if not self._options.stream:
+                    # the streamed content has been printed already
+                    print(message.content or '')
+                conversation.append({'role': 'assistant', 'content': message.content or ''})
+                conversation.commit()
+                return 0
+            conversation.append(_assistant_message(message))
+            pending = list(tool_calls)
+            try:
+                while pending:
+                    conversation.append(self._handle(pending[0]))
+                    pending.pop(0)
+            except _Exit as e:
+                # a long-running command ends the request when it exits, the result is
+                # recorded so that the following requests know what happened
+                conversation.append(_tool_message(
+                    pending[0].id,
+                    f'the command was executed in the foreground and exited with code '
+                    f'{e.returncode}.'))
+                for tool_call in pending[1:]:
+                    conversation.append(_tool_message(
+                        tool_call.id, 'not executed: the previous command ended the request.'))
+                conversation.commit()
+                return e.returncode
+            if self.candidates:
+                # dry-run: the commands that change the system are printed, stop here
+                conversation.commit()
+                return 0
         print(f'Reached the maximum number of steps ({self._options.max_steps}).')
+        conversation.commit()
         return 1
 
     def execute(self, command: ToolCommand) -> ToolResult:
@@ -157,17 +189,27 @@ class Agent:
         except _Exit as e:
             return e.returncode
 
-    def _complete(self, messages: List[dict], tools: Optional[List[dict]]):
-        parameters = ChatCompletionParameters(
-            messages=messages, stream=self._options.stream, tools=tools)
+    def _complete(self, conversation: Conversation, tools: Optional[List[dict]]):
+        """
+        Request the chat completion with the messages of the conversation.
+
+        If the endpoint reports that the context length is exceeded, the oldest turn of the
+        conversation is dropped and the request is retried.
+        """
         self.steps += 1
-        if not self._client.call(parameters):
-            return None
+        while not self._client.call(self._parameters(conversation, tools)):
+            if not context_exceeded(self._client.get_error()) or not conversation.drop_oldest():
+                return None
+            print('[ros2ai]: the context length is exceeded, the oldest turn is dropped.')
         if self._options.verbose:
             # raw completion is only available without streaming
             self._client.print_all()
         # None if the completion did not finish, the reason is printed by the client
         return self._client.get_message()
+
+    def _parameters(self, conversation: Conversation, tools: Optional[List[dict]]):
+        return ChatCompletionParameters(
+            messages=conversation.messages(), stream=self._options.stream, tools=tools)
 
     def _handle(self, tool_call) -> dict:
         """Resolve and execute a tool call, returning the tool message for the model."""
@@ -185,7 +227,12 @@ class Agent:
             print(f'[ros2ai]: tool call {name} failed, {e}')
         if self._options.verbose:
             print(f'Tool result: {content}')
-        return {'role': 'tool', 'tool_call_id': tool_call.id, 'content': content}
+        return _tool_message(tool_call.id, content)
+
+
+def _tool_message(tool_call_id: str, content: str) -> dict:
+    """Create the tool message returning the result of a tool call to the model."""
+    return {'role': 'tool', 'tool_call_id': tool_call_id, 'content': content}
 
 
 def _assistant_message(message) -> dict:
