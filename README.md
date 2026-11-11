@@ -233,6 +233,59 @@ User need to choose which of them is used by `ros2ai` as following configuration
 
   `--dry-run` prints the commands that change the system as candidates instead of executing them (read-only commands are still executed, so that the assistant can decide the command), `-d` prints the tool calls and results.
 
+  Composite tools answer a diagnostic question with several `ros2` commands in a single tool call, instead of one completion per command.
+  `get_node_status` combines `node info`, `lifecycle get`, `param list` and `topic hz` of the published topics, `get_topic_status` combines `topic info -v`, `topic hz` and `topic echo --once`.
+  The commands are printed indented under the tool call, and the result is a YAML summary including the warnings found (lifecycle state not active, idle publisher, incompatible QoS and so on).
+
+  ```bash
+  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai exec "is /lc_talker healthy?"
+  [ros2ai]: get_node_status(node=/lc_talker)
+  [ros2ai]:   ros2 node info /lc_talker
+  [ros2ai]:   ros2 lifecycle get /lc_talker
+  [ros2ai]:   ros2 param list /lc_talker
+  node: /lc_talker
+  found: true
+  lifecycle: unconfigured
+  publishers:
+  - topic: /lc_talker/transition_event
+    type: lifecycle_msgs/msg/TransitionEvent
+    hz: not measured
+  subscribers: {}
+  service_servers: {}
+  service_clients: {}
+  action_servers: {}
+  action_clients: {}
+  parameters:
+  - use_sim_time
+  warnings:
+  - lifecycle state is 'unconfigured', not active
+  No — `/lc_talker` is not healthy. It's a **lifecycle node stuck in the `unconfigured` state**:
+  ...
+  So the node exists and is alive on the graph, but it has never been transitioned to an active state. If you'd like, I can transition it to `configured` → `active` via the lifecycle services (`/lc_talker/change_state`), or list the lifecycle service details first.
+  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai exec "what is the status of the /chatter topic?"
+  [ros2ai]: get_topic_status(topic=/chatter)
+  [ros2ai]:   ros2 topic info -v /chatter
+  [ros2ai]:   ros2 topic hz /chatter
+  [ros2ai]:   ros2 topic echo --once /chatter
+  topic: /chatter
+  found: true
+  type: std_msgs/msg/String
+  publishers:
+  - node: /talker
+    reliability: RELIABLE
+    durability: VOLATILE
+  subscribers:
+  - node: /listener
+    reliability: RELIABLE
+    durability: VOLATILE
+  hz: 1.0
+  sample: 'data: ''Hello World: 108'''
+  warnings: []
+  The `/chatter` topic is healthy and active:
+  ...
+  Everything looks normal — the topic is being published at 1 Hz and received without issues.
+  ```
+
   > [!NOTE]
   > If the endpoint or the model does not support tool calling, `exec` falls back to asking the model for a single `ros2` command line, which is executed with the same policy.
 

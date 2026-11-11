@@ -23,9 +23,12 @@ without a shell, `argv[0]` is set by ros2ai, never by the model.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
+import os
 import shlex
+import signal
 import subprocess
-from typing import Dict, List, Optional, Sequence, Tuple
+import time
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import ros2ai.api.constants as constants
 
@@ -59,6 +62,20 @@ class ToolCommand:
 
 
 @dataclass
+class CompositeCommand(ToolCommand):
+    """Resolved composite tool call, the provider executes several commands for it."""
+
+    name: str = ''
+    arguments: Dict[str, Any] = field(default_factory=dict)
+
+    def display(self) -> str:
+        """Return the tool call string for the user, e.g `get_node_status(node=/talker)`."""
+        arguments = ', '.join(
+            f'{name}={shlex.quote(str(value))}' for name, value in self.arguments.items())
+        return f'{self.name}({arguments})'
+
+
+@dataclass
 class ToolResult:
     """Output of an executed tool call, returned to the model."""
 
@@ -88,7 +105,7 @@ class ToolProvider(ABC):
 
 @dataclass(frozen=True)
 class Parameter:
-    """Parameter of a ROS 2 CLI tool, translated into a command line argument."""
+    """Parameter of a tool, translated into a command line argument for the ROS 2 CLI tools."""
 
     description: str
     required: bool = True
@@ -96,6 +113,69 @@ class Parameter:
     kind: str = 'string'
     # option flag that precedes the value, positional argument if None
     flag: Optional[str] = None
+    # inclusive range of an integer parameter, unbounded if None
+    minimum: Optional[int] = None
+    maximum: Optional[int] = None
+
+
+class Executor(ABC):
+    """
+    Interface for a composite tool to run `ros2` commands through the provider.
+
+    The provider classifies every command and refuses the ones that exceed the policy
+    of the composite tool, e.g a read-only tool can not run a mutating command.
+    """
+
+    @abstractmethod
+    def run(
+        self, arguments: Sequence[str], timeout: float = constants.ROS2AI_TOOL_TIMEOUT_SEC,
+    ) -> ToolResult:
+        """
+        Run `ros2 <arguments>` and capture its output.
+
+        :param arguments: arguments after `ros2`.
+        :param timeout: seconds after which the command is killed.
+        :raises ToolError: if the command is not allowed by the policy of the tool.
+        """
+
+    @abstractmethod
+    def sample(self, arguments_list: Sequence[Sequence[str]], seconds: float) -> List[ToolResult]:
+        """
+        Run several `ros2 <arguments>` in parallel for a period, then interrupt them.
+
+        This is meant for the commands that run until interrupted and print periodically,
+        e.g `ros2 topic hz`, the output up to the interruption is captured.
+
+        :param arguments_list: arguments after `ros2` of each command.
+        :param seconds: seconds to wait before interrupting the commands.
+        :return: results in the same order as `arguments_list`.
+        :raises ToolError: if any command is not allowed by the policy of the tool.
+        """
+
+
+class CompositeTool(ABC):
+    """
+    Tool implemented in Python on top of several `ros2` commands, returning one result.
+
+    Subclasses define the class attributes and implement `run()`, the arguments are validated
+    by the provider against `parameters` before `run()` is called.
+    """
+
+    name: str
+    description: str
+    policy: ToolPolicy
+    parameters: Dict[str, Parameter] = {}
+    timeout: float = constants.ROS2AI_TOOL_TIMEOUT_SEC
+
+    @abstractmethod
+    def run(self, executor: Executor, arguments: Dict[str, Any]) -> ToolResult:
+        """
+        Execute the tool.
+
+        :param executor: runs the `ros2` commands within the policy of the tool.
+        :param arguments: validated arguments, optional ones are absent if not provided.
+        :return: the result to be returned to the model.
+        """
 
 
 @dataclass(frozen=True)
@@ -253,20 +333,28 @@ def _json_type(kind: str) -> dict:
     return {'type': kind}
 
 
-def _check_value(name: str, parameter: Parameter, value) -> List[str]:
-    """Validate a parameter value and translate it into command line arguments."""
+def _validate_value(name: str, parameter: Parameter, value):
+    """Validate a parameter value against its definition, returning the value."""
     if parameter.kind == 'array':
         if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
             raise ToolError(f"parameter '{name}' must be a list of strings")
-        values = value
     elif parameter.kind == 'integer':
         if isinstance(value, bool) or not isinstance(value, int):
             raise ToolError(f"parameter '{name}' must be an integer")
-        values = [str(value)]
+        if parameter.minimum is not None and value < parameter.minimum:
+            raise ToolError(f"parameter '{name}' must be at least {parameter.minimum}")
+        if parameter.maximum is not None and value > parameter.maximum:
+            raise ToolError(f"parameter '{name}' must be at most {parameter.maximum}")
     else:
         if not isinstance(value, str) or value == '':
             raise ToolError(f"parameter '{name}' must be a non-empty string")
-        values = [value]
+    return value
+
+
+def _check_value(name: str, parameter: Parameter, value) -> List[str]:
+    """Validate a parameter value and translate it into command line arguments."""
+    value = _validate_value(name, parameter, value)
+    values = value if parameter.kind == 'array' else [str(value)]
     if parameter.flag is None:
         return values
     args = []
@@ -275,40 +363,128 @@ def _check_value(name: str, parameter: Parameter, value) -> List[str]:
     return args
 
 
-class Ros2CliProvider(ToolProvider):
-    """Tool provider that executes the `ros2` command line interface."""
+def _validate_arguments(tool_name: str, parameters: Dict[str, Parameter], arguments):
+    """Check the arguments of a tool call, yielding (name, parameter, value) of the given ones."""
+    if not isinstance(arguments, dict):
+        raise ToolError('arguments must be a JSON object')
+    unknown = set(arguments) - set(parameters)
+    if unknown:
+        raise ToolError(f"unknown parameter(s) {sorted(unknown)} for tool '{tool_name}'")
+    for name, parameter in parameters.items():
+        if name not in arguments or arguments[name] is None:
+            if parameter.required:
+                raise ToolError(f"missing required parameter '{name}'")
+            continue
+        yield name, parameter, arguments[name]
 
-    def __init__(self, tools: Sequence[Ros2Tool] = ROS2_TOOLS):
+
+def _definition(name: str, description: str, parameters: Dict[str, Parameter]) -> dict:
+    """Build the tool definition in the OpenAI function calling format."""
+    properties = {}
+    required = []
+    for parameter_name, parameter in parameters.items():
+        properties[parameter_name] = {'description': parameter.description}
+        properties[parameter_name].update(_json_type(parameter.kind))
+        if parameter.minimum is not None:
+            properties[parameter_name]['minimum'] = parameter.minimum
+        if parameter.maximum is not None:
+            properties[parameter_name]['maximum'] = parameter.maximum
+        if parameter.required:
+            required.append(parameter_name)
+    return {
+        'type': 'function',
+        'function': {
+            'name': name,
+            'description': description,
+            'parameters': {
+                'type': 'object',
+                'properties': properties,
+                'required': required,
+                'additionalProperties': False,
+            },
+        },
+    }
+
+
+# policies a composite tool is allowed to run, a composite never runs long-running commands
+_ALLOWED_POLICIES = {
+    ToolPolicy.READ_ONLY: {ToolPolicy.READ_ONLY},
+    ToolPolicy.MUTATING: {ToolPolicy.READ_ONLY, ToolPolicy.MUTATING},
+    ToolPolicy.LONG_RUNNING: {ToolPolicy.READ_ONLY, ToolPolicy.MUTATING},
+}
+
+
+class _CompositeExecutor(Executor):
+    """Executor bound to the provider and the policy of a composite tool."""
+
+    def __init__(self, provider: 'Ros2CliProvider', policy: ToolPolicy):
+        self._provider = provider
+        self._policy = policy
+
+    def _command(self, arguments: Sequence[str], timeout: float) -> ToolCommand:
+        argv = ['ros2', *arguments]
+        policy = self._provider.classify(arguments)
+        if policy not in _ALLOWED_POLICIES[self._policy]:
+            raise ToolError(
+                f"'{shlex.join(argv)}' is {policy.value}, "
+                f'not allowed in a {self._policy.value} tool')
+        return ToolCommand(argv=argv, policy=policy, timeout=timeout)
+
+    @staticmethod
+    def _print(command: ToolCommand):
+        # the sub-commands are printed indented under the tool call, like every command
+        print(f'[ros2ai]:   {command.display()}')
+
+    def run(self, arguments, timeout=constants.ROS2AI_TOOL_TIMEOUT_SEC):
+        command = self._command(arguments, timeout)
+        self._print(command)
+        return self._provider.run(command)
+
+    def sample(self, arguments_list, seconds):
+        commands = [self._command(arguments, seconds) for arguments in arguments_list]
+        for command in commands:
+            self._print(command)
+        return self._provider.sample(commands, seconds)
+
+
+class Ros2CliProvider(ToolProvider):
+    """
+    Tool provider that executes the `ros2` command line interface.
+
+    Besides the tools that map to a single command, the provider offers the composite tools
+    (see `ros2ai.api.composite`) that run several commands and return one result.
+    """
+
+    def __init__(
+        self,
+        tools: Sequence[Ros2Tool] = ROS2_TOOLS,
+        composites: Optional[Sequence[CompositeTool]] = None,
+    ):
+        """
+        Create the provider.
+
+        :param tools: single command tools.
+        :param composites: composite tools, the default composite tools if None.
+        """
+        if composites is None:
+            # imported here, the composite module depends on this module
+            from ros2ai.api.composite import COMPOSITE_TOOLS
+            composites = COMPOSITE_TOOLS
         self._tools = {tool.name: tool for tool in tools}
+        self._composites = {tool.name: tool for tool in composites}
+        duplicated = set(self._tools) & set(self._composites)
+        if duplicated:
+            raise ValueError(f'duplicated tool name(s) {sorted(duplicated)}')
 
     @property
     def names(self) -> List[str]:
-        return list(self._tools.keys())
+        return list(self._tools.keys()) + list(self._composites.keys())
 
     def definitions(self) -> List[dict]:
-        definitions = []
-        for tool in self._tools.values():
-            properties = {}
-            required = []
-            for name, parameter in tool.parameters.items():
-                properties[name] = {'description': parameter.description}
-                properties[name].update(_json_type(parameter.kind))
-                if parameter.required:
-                    required.append(name)
-            definitions.append({
-                'type': 'function',
-                'function': {
-                    'name': tool.name,
-                    'description': tool.description,
-                    'parameters': {
-                        'type': 'object',
-                        'properties': properties,
-                        'required': required,
-                        'additionalProperties': False,
-                    },
-                },
-            })
-        return definitions
+        return [
+            _definition(tool.name, tool.description, tool.parameters)
+            for tool in (*self._tools.values(), *self._composites.values())
+        ]
 
     @staticmethod
     def classify(arguments: Sequence[str]) -> ToolPolicy:
@@ -331,21 +507,23 @@ class Ros2CliProvider(ToolProvider):
         return ToolPolicy.MUTATING
 
     def resolve(self, name: str, arguments: dict) -> ToolCommand:
+        composite = self._composites.get(name)
+        if composite is not None:
+            values = {
+                parameter_name: _validate_value(parameter_name, parameter, value)
+                for parameter_name, parameter, value
+                in _validate_arguments(name, composite.parameters, arguments)
+            }
+            return CompositeCommand(
+                argv=[], policy=composite.policy, timeout=composite.timeout,
+                name=name, arguments=values)
         tool = self._tools.get(name)
         if tool is None:
             raise ToolError(f"unknown tool '{name}'")
-        if not isinstance(arguments, dict):
-            raise ToolError('arguments must be a JSON object')
-        unknown = set(arguments) - set(tool.parameters)
-        if unknown:
-            raise ToolError(f"unknown parameter(s) {sorted(unknown)} for tool '{name}'")
         argv = ['ros2', *tool.base]
-        for parameter_name, parameter in tool.parameters.items():
-            if parameter_name not in arguments or arguments[parameter_name] is None:
-                if parameter.required:
-                    raise ToolError(f"missing required parameter '{parameter_name}'")
-                continue
-            argv.extend(_check_value(parameter_name, parameter, arguments[parameter_name]))
+        for parameter_name, parameter, value in _validate_arguments(
+                name, tool.parameters, arguments):
+            argv.extend(_check_value(parameter_name, parameter, value))
         policy = tool.policy
         if name == GENERIC_TOOL_NAME:
             if len(argv) == 1:
@@ -354,6 +532,9 @@ class Ros2CliProvider(ToolProvider):
         return ToolCommand(argv=argv, policy=policy, timeout=tool.timeout)
 
     def run(self, command: ToolCommand) -> ToolResult:
+        if isinstance(command, CompositeCommand):
+            composite = self._composites[command.name]
+            return composite.run(_CompositeExecutor(self, command.policy), command.arguments)
         try:
             completed = subprocess.run(
                 command.argv, capture_output=True, text=True, timeout=command.timeout)
@@ -367,6 +548,49 @@ class Ros2CliProvider(ToolProvider):
         if completed.returncode != 0:
             output += f'\n[exit code {completed.returncode}]'
         return ToolResult(output=output.strip(), returncode=completed.returncode)
+
+    def sample(self, commands: Sequence[ToolCommand], seconds: float) -> List[ToolResult]:
+        """
+        Run the commands in parallel for a period, interrupt them and capture their output.
+
+        The commands get `SIGINT` like `Ctrl-C`, then a grace period to flush and exit before
+        being killed. Python is told not to buffer its output, the `ros2` commands are Python
+        and would otherwise lose the buffered output when killed.
+
+        :param commands: commands to be executed.
+        :param seconds: seconds to wait before interrupting the commands.
+        :return: results in the same order as `commands`.
+        """
+        env = {**os.environ, 'PYTHONUNBUFFERED': '1'}
+        processes: List[Optional[subprocess.Popen]] = []
+        results: List[Optional[ToolResult]] = []
+        for command in commands:
+            try:
+                processes.append(subprocess.Popen(
+                    command.argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    text=True, env=env))
+                results.append(None)
+            except OSError as e:
+                processes.append(None)
+                results.append(ToolResult(output=f'failed to execute: {e}', returncode=-1))
+        deadline = time.monotonic() + seconds
+        while time.monotonic() < deadline and any(
+                process is not None and process.poll() is None for process in processes):
+            time.sleep(constants.ROS2AI_SAMPLE_POLL_SEC)
+        for process in processes:
+            if process is not None and process.poll() is None:
+                process.send_signal(signal.SIGINT)
+        for index, process in enumerate(processes):
+            if process is None:
+                continue
+            try:
+                stdout, _ = process.communicate(timeout=constants.ROS2AI_SAMPLE_GRACE_SEC)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                stdout, _ = process.communicate()
+            results[index] = ToolResult(
+                output=_combine_output(stdout, None), returncode=process.returncode)
+        return results
 
 
 def _combine_output(stdout, stderr) -> str:

@@ -78,6 +78,24 @@ ROS2AI_TOOL_OUTPUT_LIMIT = 4000
 ROS2AI_TOOL_TIMEOUT_SEC = 30.0
 ROS2AI_TOOL_ECHO_TIMEOUT_SEC = 10.0
 
+# Composite tools (e.g `get_node_status`) run several `ros2` commands for a single tool call.
+# Timeout in seconds for each command that queries a node (e.g `ros2 lifecycle get`).
+ROS2AI_COMPOSITE_STEP_TIMEOUT_SEC = 10.0
+# Seconds to measure the publishing rates (`ros2 topic hz`) and to receive a sample message,
+# the default and the maximum the model can request. `ros2 topic hz` needs a couple of messages
+# before printing the rate, so a 1 Hz topic needs a few seconds.
+ROS2AI_RATE_WINDOW_SEC = 5
+ROS2AI_RATE_WINDOW_MAX_SEC = 10
+# Maximum number of topics whose publishing rates are measured in parallel.
+ROS2AI_RATE_TOPICS_LIMIT = 8
+# Maximum number of items (parameters, nodes, topics) in a list of the result.
+ROS2AI_LIST_LIMIT = 30
+# Maximum number of lines of a sample message in the result.
+ROS2AI_SAMPLE_LINES_LIMIT = 20
+# Sampled commands are polled with this period and get this grace period after the interrupt.
+ROS2AI_SAMPLE_POLL_SEC = 0.1
+ROS2AI_SAMPLE_GRACE_SEC = 5.0
+
 # Temperature controls the consistency for behavior.
 # (range 0.0 - 2.0 for OpenAI, 0.0 - 1.0 for Anthropic)
 # The lower the temperature is, the more deterministic behavior that LLM does.
