@@ -14,10 +14,13 @@
 
 """Tests of the ROS 2 CLI tool provider, no ROS 2 graph required."""
 
+import os
 import shlex
+import signal
 import subprocess
 
 import pytest
+from ros2ai.api.composite import COMPOSITE_TOOLS
 import ros2ai.api.constants as constants
 from ros2ai.api.tools import GENERIC_TOOL_NAME
 from ros2ai.api.tools import ROS2_TOOLS
@@ -34,14 +37,14 @@ def provider():
 
 def test_definitions_format(provider):
     definitions = provider.definitions()
-    assert len(definitions) == len(ROS2_TOOLS)
+    assert len(definitions) == len(ROS2_TOOLS) + len(COMPOSITE_TOOLS)
     names = [definition['function']['name'] for definition in definitions]
     assert names == provider.names
     assert len(set(names)) == len(names)
+    assert all(name.startswith('ros2_') for name in names[:len(ROS2_TOOLS)])
     for definition in definitions:
         assert definition['type'] == 'function'
         function = definition['function']
-        assert function['name'].startswith('ros2_')
         assert function['description']
         parameters = function['parameters']
         assert parameters['type'] == 'object'
@@ -231,3 +234,109 @@ def test_run_os_error(provider, monkeypatch):
     result = provider.run(ToolCommand(['ros2', 'node', 'list'], ToolPolicy.READ_ONLY))
     assert result.output == 'failed to execute: no ros2'
     assert result.returncode == -1
+
+
+class FakePopen:
+    """Stand-in for subprocess.Popen, running until interrupted unless `exited` is set."""
+
+    instances = []
+
+    def __init__(self, argv, stdout='', exited=None, hang=False, error=None):
+        self.argv = argv
+        self.stdout = stdout
+        self.returncode = exited
+        self.hang = hang
+        self.error = error
+        self.kwargs = None
+        self.signals = []
+        self.killed = False
+        self.communicate_timeouts = []
+
+    def start(self, argv, **kwargs):
+        if self.error is not None:
+            raise self.error
+        assert argv == self.argv
+        self.kwargs = kwargs
+        FakePopen.instances.append(self)
+        return self
+
+    def poll(self):
+        return self.returncode
+
+    def send_signal(self, sig):
+        self.signals.append(sig)
+        self.returncode = -sig
+
+    def kill(self):
+        self.killed = True
+        self.hang = False
+        self.returncode = -signal.SIGKILL
+
+    def communicate(self, timeout=None):
+        self.communicate_timeouts.append(timeout)
+        if self.hang:
+            raise subprocess.TimeoutExpired(self.argv, timeout)
+        return self.stdout, None
+
+
+@pytest.fixture
+def fake_popen(monkeypatch):
+    """Patch subprocess.Popen to start the scripted FakePopen instances in order."""
+    FakePopen.instances = []
+    scripted = []
+
+    def popen(argv, **kwargs):
+        return scripted.pop(0).start(argv, **kwargs)
+    monkeypatch.setattr(subprocess, 'Popen', popen)
+    return scripted
+
+
+def test_sample_interrupts_and_captures(provider, fake_popen):
+    hz = ToolCommand(['ros2', 'topic', 'hz', '/chatter'], ToolPolicy.READ_ONLY)
+    echo = ToolCommand(['ros2', 'topic', 'echo', '--once', '/chatter'], ToolPolicy.READ_ONLY)
+    fake_popen.extend([
+        FakePopen(hz.argv, stdout='average rate: 1.000\n\tmin: 1.000s\n'),
+        FakePopen(echo.argv, stdout="data: 'hello'\n---\n", exited=0),
+    ])
+    results = provider.sample([hz, echo], 0.2)
+    running, done = FakePopen.instances
+    assert running.kwargs['stdout'] is subprocess.PIPE
+    assert running.kwargs['stderr'] is subprocess.STDOUT
+    assert running.kwargs['text'] is True
+    assert running.kwargs['env']['PYTHONUNBUFFERED'] == '1'
+    assert running.kwargs['env']['PATH'] == os.environ['PATH']
+    assert 'shell' not in running.kwargs
+    # the running command is interrupted, the finished one is left alone
+    assert running.signals == [signal.SIGINT]
+    assert done.signals == []
+    assert running.communicate_timeouts == [constants.ROS2AI_SAMPLE_GRACE_SEC]
+    assert results[0].output == 'average rate: 1.000\n\tmin: 1.000s'
+    assert results[0].returncode == -signal.SIGINT
+    assert results[1].output == "data: 'hello'\n---"
+    assert results[1].returncode == 0
+
+
+def test_sample_kills_after_grace_period(provider, fake_popen):
+    hz = ToolCommand(['ros2', 'topic', 'hz', '/chatter'], ToolPolicy.READ_ONLY)
+    fake_popen.append(FakePopen(hz.argv, stdout='partial', hang=True))
+    results = provider.sample([hz], 0.1)
+    process = FakePopen.instances[0]
+    assert process.signals == [signal.SIGINT]
+    assert process.killed is True
+    assert process.communicate_timeouts == [constants.ROS2AI_SAMPLE_GRACE_SEC, None]
+    assert results[0].output == 'partial'
+    assert results[0].returncode == -signal.SIGKILL
+
+
+def test_sample_os_error(provider, fake_popen):
+    missing = ToolCommand(['ros2', 'topic', 'hz', '/a'], ToolPolicy.READ_ONLY)
+    other = ToolCommand(['ros2', 'topic', 'hz', '/b'], ToolPolicy.READ_ONLY)
+    fake_popen.extend([
+        FakePopen(missing.argv, error=FileNotFoundError('no ros2')),
+        FakePopen(other.argv, stdout='average rate: 2.000\n', exited=0),
+    ])
+    results = provider.sample([missing, other], 0.1)
+    assert results[0].output == 'failed to execute: no ros2'
+    assert results[0].returncode == -1
+    assert results[1].output == 'average rate: 2.000'
+    assert len(FakePopen.instances) == 1

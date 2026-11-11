@@ -56,6 +56,8 @@ class FakeRos2:
     stdout = 'fake ros2 output'
     returncode = 0
     calls = []
+    # canned stdout per command (tuple of argv), `stdout` is used if the command is absent
+    outputs = {}
 
 
 def fake_chunks(contents):
@@ -114,6 +116,7 @@ def fake_openai(monkeypatch):
     FakeRos2.stdout = 'fake ros2 output'
     FakeRos2.returncode = 0
     FakeRos2.calls = []
+    FakeRos2.outputs = {}
     # patch the OpenAI class wherever ros2ai imported it
     for module_name in ('ros2ai.api.config', 'ros2ai.api.openai', 'ros2ai.api.client'):
         try:
@@ -128,8 +131,9 @@ def fake_openai(monkeypatch):
         if cmd[0] == 'ros2':
             assert kwargs.get('shell') is None
             FakeRos2.calls.append(cmd)
+            stdout = FakeRos2.outputs.get(tuple(cmd), FakeRos2.stdout)
             return subprocess.CompletedProcess(
-                cmd, FakeRos2.returncode, stdout=FakeRos2.stdout, stderr='')
+                cmd, FakeRos2.returncode, stdout=stdout, stderr='')
         assert cmd[0] == 'curl'
         data = {'data': [{'id': model_id} for model_id in FakeOpenAI.model_ids]}
         return subprocess.CompletedProcess(cmd, 0, stdout=json.dumps(data), stderr='')
@@ -513,3 +517,63 @@ def test_legacy_environment_variables(fake_openai, monkeypatch):
     client = fake_openai.instances[1]
     assert client.base_url == 'http://10.0.0.1:11434/v1'
     assert client.create_calls[0]['model'] == 'gemma4'
+
+
+def test_exec_composite_tool(fake_openai, monkeypatch, capsys):
+    fake_openai.responses = [
+        [('get_node_status', {'node': '/talker', 'window': 1})],
+        'The /talker node is healthy.',
+    ]
+    FakeRos2.outputs = {
+        ('ros2', 'node', 'info', '/talker'): (
+            '/talker\n  Subscribers:\n\n  Publishers:\n'
+            '    /chatter: std_msgs/msg/String\n'
+            '    /rosout: rcl_interfaces/msg/Log\n'
+            '  Service Servers:\n'
+            '    /talker/get_parameters: rcl_interfaces/srv/GetParameters\n'),
+        ('ros2', 'param', 'list', '/talker'): '  use_sim_time\n',
+    }
+
+    class FakePopen:
+
+        def __init__(self, argv, **kwargs):
+            assert argv == ['ros2', 'topic', 'hz', '/chatter']
+            assert kwargs.get('shell') is None
+            assert kwargs['env']['PYTHONUNBUFFERED'] == '1'
+            FakeRos2.calls.append(argv)
+            self.returncode = None
+
+        def poll(self):
+            return self.returncode
+
+        def send_signal(self, sig):
+            self.returncode = 0
+
+        def communicate(self, timeout=None):
+            return 'average rate: 1.000\n\tmin: 1.000s max: 1.000s\n', None
+    monkeypatch.setattr(subprocess, 'Popen', FakePopen)
+
+    assert run_verb(ExecVerb(), ['is /talker healthy?']) == 0
+    assert FakeRos2.calls == [
+        ['ros2', 'node', 'info', '/talker'],
+        ['ros2', 'topic', 'hz', '/chatter'],
+        ['ros2', 'param', 'list', '/talker'],
+    ]
+    out = capsys.readouterr().out
+    assert out.startswith(
+        '[ros2ai]: get_node_status(node=/talker, window=1)\n'
+        '[ros2ai]:   ros2 node info /talker\n'
+        '[ros2ai]:   ros2 topic hz /chatter\n'
+        '[ros2ai]:   ros2 param list /talker\n'
+        'node: /talker\n'
+        'found: true\n'
+        'lifecycle: not a lifecycle node\n'
+        'publishers:\n'
+        '- topic: /chatter\n'
+        '  type: std_msgs/msg/String\n'
+        '  hz: 1.0\n')
+    assert out.endswith('warnings: []\nThe /talker node is healthy.\n')
+    tool_message = fake_openai.instances[0].create_calls[1]['messages'][3]
+    assert tool_message['role'] == 'tool'
+    assert tool_message['content'].startswith('node: /talker\nfound: true\n')
+    assert 'parameters:\n- use_sim_time\n' in tool_message['content']
