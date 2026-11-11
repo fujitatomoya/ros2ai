@@ -55,10 +55,14 @@ def add_arguments(parser):
         '-r', '--role', metavar='<role>', type=str, default=None,
         help="Define the prompt's system role, `{}` is replaced with the ROS distribution name.")
     parser.add_argument(
+        '-n', '--nostream',
+        action='store_true',
+        help='Prints using no streaming completion responses.')
+    parser.add_argument(
         '-v', '--verbose',
         action='store_true',
-        help='Prints detailed information: configuration, system role, raw completions, '
-             'tool calls and results.')
+        help='Prints detailed information: configuration, system role, tool calls and results, '
+             'and raw completions (only available with nostream option).')
     parser.add_argument(
         '-y', '--yes',
         action='store_true',

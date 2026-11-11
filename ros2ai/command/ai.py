@@ -95,7 +95,9 @@ def run_request(args, request: str) -> int:
     :param request: the user request.
     :return: 0 on success, 1 on failure, or the return code of a long-running command.
     """
-    options = AgentOptions(dry_run=args.dry_run, auto_approve=args.yes, verbose=args.verbose)
+    options = AgentOptions(
+        dry_run=args.dry_run, auto_approve=args.yes, stream=not args.nostream,
+        verbose=args.verbose)
     client = ChatCompletionClient(OpenAiConfig(args))
     agent = Agent(client, Ros2CliProvider(), options)
 

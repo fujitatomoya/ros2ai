@@ -58,9 +58,26 @@ class FakeRos2:
     outputs = {}
 
 
-def fake_chunks(contents):
+def fake_chunks(contents, tool_calls=None, finish_reason='stop'):
+    """Stream the contents and the tool calls as chunks, the arguments are split in two."""
+    def chunk(content=None, tool_calls=None, finish_reason=None):
+        delta = SimpleNamespace(content=content, tool_calls=tool_calls)
+        return SimpleNamespace(
+            choices=[SimpleNamespace(delta=delta, finish_reason=finish_reason)])
     for content in contents:
-        yield SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=content))])
+        yield chunk(content=content)
+    for index, tool_call in enumerate(tool_calls or []):
+        arguments = tool_call.function.arguments
+        half = len(arguments) // 2
+        yield chunk(tool_calls=[SimpleNamespace(
+            index=index, id=tool_call.id, type='function',
+            function=SimpleNamespace(name=tool_call.function.name, arguments=arguments[:half]))])
+        yield chunk(tool_calls=[SimpleNamespace(
+            index=index, id=None, type=None,
+            function=SimpleNamespace(name=None, arguments=arguments[half:]))])
+    yield chunk(finish_reason=finish_reason)
+    # usage chunk without choices
+    yield SimpleNamespace(choices=[])
 
 
 class FakeOpenAI:
@@ -88,15 +105,22 @@ class FakeOpenAI:
         self.create_calls.append(kwargs)
         if FakeOpenAI.error is not None:
             raise FakeOpenAI.error
+        stream = kwargs.get('stream')
         if FakeOpenAI.responses:
             response = FakeOpenAI.responses.pop(0)
             if isinstance(response, Exception):
                 raise response
             if isinstance(response, list):
-                return FakeCompletion(None, tool_calls=fake_tool_calls(response))
+                tool_calls = fake_tool_calls(response)
+                if stream:
+                    return fake_chunks([], tool_calls)
+                return FakeCompletion(None, tool_calls=tool_calls)
+            if stream:
+                return fake_chunks([response])
             return FakeCompletion(response)
-        if kwargs.get('stream'):
-            return fake_chunks([FakeOpenAI.content, None, '!'])
+        if stream:
+            return fake_chunks(
+                [FakeOpenAI.content, None, '!'], finish_reason=FakeOpenAI.finish_reason)
         return FakeCompletion(FakeOpenAI.content, FakeOpenAI.finish_reason)
 
     def _list_models(self):
@@ -219,9 +243,9 @@ def test_status_not_finished(fake_openai, capsys):
 
 def test_answer_without_tool_calls(fake_openai, capsys):
     assert run_command(['what', 'is ros']) == 0
-    assert capsys.readouterr().out == 'fake answer\n'
+    assert capsys.readouterr().out == 'fake answer!\n'
     call = fake_openai.instances[0].create_calls[0]
-    assert call['stream'] is False
+    assert call['stream'] is True
     assert call['messages'] == [
         {'role': 'system', 'content': constants.ROLE_SYSTEM_DEFAULT.format('rolling')},
         {'role': 'user', 'content': 'what is ros'},
@@ -229,8 +253,23 @@ def test_answer_without_tool_calls(fake_openai, capsys):
     assert FakeRos2.calls == []
 
 
+def test_answer_nostream(fake_openai, capsys):
+    assert run_command(['hello', '-n']) == 0
+    assert capsys.readouterr().out == 'fake answer\n'
+    assert fake_openai.instances[0].create_calls[0]['stream'] is False
+
+
 def test_answer_verbose(fake_openai, capsys):
     assert run_command(['hello', '-v']) == 0
+    out = capsys.readouterr().out
+    assert out.startswith('System role:\n' + constants.ROLE_SYSTEM_DEFAULT.format('rolling'))
+    # raw completion is only available without streaming
+    assert 'FakeCompletion' not in out
+    assert out.endswith('fake answer!\n')
+
+
+def test_answer_nostream_verbose(fake_openai, capsys):
+    assert run_command(['hello', '-nv']) == 0
     out = capsys.readouterr().out
     assert out.startswith('System role:\n' + constants.ROLE_SYSTEM_DEFAULT.format('rolling'))
     assert "FakeCompletion('fake answer')" in out
@@ -239,7 +278,10 @@ def test_answer_verbose(fake_openai, capsys):
 
 def test_answer_not_finished(fake_openai, capsys):
     fake_openai.finish_reason = 'length'
+    # the partial content is streamed before the reason
     assert run_command(['hello']) == 1
+    assert capsys.readouterr().out == 'fake answer!\nFailed chat completion with: length\n'
+    assert run_command(['hello', '-n']) == 1
     assert capsys.readouterr().out == 'Failed chat completion with: length\n'
 
 
@@ -300,7 +342,7 @@ def test_dry_run(fake_openai, capsys):
     client = fake_openai.instances[0]
     assert len(client.create_calls) == 2
     call = client.create_calls[0]
-    assert call['stream'] is False
+    assert call['stream'] is True
     # the conversation keeps growing after the call, only the prompt is checked here
     assert call['messages'][:2] == [
         {'role': 'system', 'content': constants.ROLE_SYSTEM_DEFAULT.format('rolling')},
@@ -314,7 +356,7 @@ def test_dry_run(fake_openai, capsys):
 
 def test_verbose_dry_run(fake_openai, capsys):
     fake_openai.responses = [[('ros2_cli', {'arguments': ['daemon', 'stop']})]]
-    assert run_command(['stop daemon', '-v', '--dry-run']) == 0
+    assert run_command(['stop daemon', '-nv', '--dry-run']) == 0
     out = capsys.readouterr().out
     assert out.startswith('System role:\n' + constants.ROLE_SYSTEM_DEFAULT.format('rolling'))
     assert 'FakeCompletion(None)' in out
@@ -351,6 +393,16 @@ def test_read_only_tools(fake_openai, capsys):
             'function': {'name': 'ros2_node_info', 'arguments': '{"node": "/talker"}'}}]},
         {'role': 'tool', 'tool_call_id': 'call_0', 'content': '/talker'},
     ]
+
+
+def test_read_only_tools_nostream(fake_openai, capsys):
+    fake_openai.responses = [[('ros2_node_list', {})], 'done']
+    assert run_command(['give me', 'all nodes', '-n']) == 0
+    assert FakeRos2.calls == [['ros2', 'node', 'list']]
+    assert capsys.readouterr().out == '[ros2ai]: ros2 node list\nfake ros2 output\ndone\n'
+    calls = fake_openai.instances[0].create_calls
+    assert all(call['stream'] is False for call in calls)
+    assert calls[1]['messages'][2]['tool_calls'][0]['id'] == 'call_0'
 
 
 def test_mutating_tool_confirmed(fake_openai, fake_confirm, capsys):
