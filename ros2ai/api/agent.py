@@ -33,8 +33,10 @@ class AgentOptions:
     dry_run: bool = False
     # execute the commands that change the system without confirmation
     auto_approve: bool = False
-    # print the tool calls and the tool results
-    debug: bool = False
+    # stream the completions, the content is printed as it arrives
+    stream: bool = True
+    # print the raw completions, the tool calls and the tool results
+    verbose: bool = False
     max_steps: int = constants.ROS2AI_MAX_STEPS
     output_limit: int = constants.ROS2AI_TOOL_OUTPUT_LIMIT
 
@@ -84,16 +86,17 @@ class Agent:
         # number of command candidates printed instead of being executed (dry-run)
         self.candidates = 0
 
-    def run(self, system_role: str, request: str) -> int:
+    def run(self, system_role: str, request: str, *, tools: bool = True) -> int:
         """
         Process the user request until the model answers without tool calls.
 
         :param system_role: content of the system message.
         :param request: content of the user message.
+        :param tools: offer the tools of the provider to the model, a plain completion if False.
         :return: 0 on success, 1 on failure, or the return code of a long-running command.
         """
         messages = chat_messages(system_role, request)
-        tools = self._provider.definitions()
+        tools = self._provider.definitions() if tools else None
         self.steps = 0
         self.candidates = 0
         try:
@@ -103,7 +106,9 @@ class Agent:
                     return 1
                 tool_calls = getattr(message, 'tool_calls', None) or []
                 if not tool_calls:
-                    print(message.content or '')
+                    if not self._options.stream:
+                        # the streamed content has been printed already
+                        print(message.content or '')
                     return 0
                 messages.append(_assistant_message(message))
                 for tool_call in tool_calls:
@@ -152,18 +157,17 @@ class Agent:
         except _Exit as e:
             return e.returncode
 
-    def _complete(self, messages: List[dict], tools: List[dict]):
-        parameters = ChatCompletionParameters(messages=messages, stream=False, tools=tools)
+    def _complete(self, messages: List[dict], tools: Optional[List[dict]]):
+        parameters = ChatCompletionParameters(
+            messages=messages, stream=self._options.stream, tools=tools)
         self.steps += 1
         if not self._client.call(parameters):
             return None
-        if self._options.debug:
+        if self._options.verbose:
+            # raw completion is only available without streaming
             self._client.print_all()
-        message = self._client.get_message()
-        if message is None:
-            # completion did not finish, the reason is printed
-            self._client.print_result()
-        return message
+        # None if the completion did not finish, the reason is printed by the client
+        return self._client.get_message()
 
     def _handle(self, tool_call) -> dict:
         """Resolve and execute a tool call, returning the tool message for the model."""
@@ -171,7 +175,7 @@ class Agent:
         name = getattr(function, 'name', None) or '(unknown)'
         try:
             arguments = json.loads(getattr(function, 'arguments', None) or '{}')
-            if self._options.debug:
+            if self._options.verbose:
                 print(f'Tool call: {name}({json.dumps(arguments)})')
             command = self._provider.resolve(name, arguments)
             result = self.execute(command)
@@ -179,7 +183,7 @@ class Agent:
         except (json.JSONDecodeError, ToolError) as e:
             content = f'error: {e}'
             print(f'[ros2ai]: tool call {name} failed, {e}')
-        if self._options.debug:
+        if self._options.verbose:
             print(f'Tool result: {content}')
         return {'role': 'tool', 'tool_call_id': tool_call.id, 'content': content}
 

@@ -13,47 +13,8 @@
 # limitations under the License.
 
 from ros2ai.api.utils import get_ros_distro
-from ros2ai.api.utils import remove_backticks
-from ros2ai.api.utils import ros2_single_command
 from ros2ai.api.utils import run_executable
-from ros2ai.api.utils import truncate_before_substring
 from ros2ai.api.utils import truncate_output
-
-
-def test_truncate_before_substring_found_with_newline():
-    text = 'Sure, here it is:\nros2 topic list\nThat lists topics.'
-    assert truncate_before_substring(original=text, substring='ros2') == 'ros2 topic list'
-
-
-def test_truncate_before_substring_found_without_newline():
-    text = 'answer: ros2 node list'
-    assert truncate_before_substring(original=text, substring='ros2') == 'ros2 node list'
-
-
-def test_truncate_before_substring_not_found():
-    text = 'no command here\nat all'
-    assert truncate_before_substring(original=text, substring='ros2') == text
-
-
-def test_remove_backticks():
-    assert remove_backticks('```ros2 topic list```') == 'ros2 topic list'
-    assert remove_backticks('ros2 topic list') == 'ros2 topic list'
-
-
-def test_ros2_single_command_passthrough(capsys):
-    assert ros2_single_command('  ros2 topic list  ') == 'ros2 topic list'
-    assert capsys.readouterr().out == ''
-
-
-def test_ros2_single_command_multiple_returns_first_ros2(capsys):
-    result = ros2_single_command('source setup.bash && ros2 topic list; ros2 node list')
-    assert result == 'ros2 topic list'
-    assert 'Warning: Multiple commands detected' in capsys.readouterr().out
-
-
-def test_ros2_single_command_multiple_without_ros2_returns_first(capsys):
-    assert ros2_single_command('echo a | grep b') == 'echo a'
-    assert 'Warning: Multiple commands detected' in capsys.readouterr().out
 
 
 def test_get_ros_distro_from_env(monkeypatch, capsys):

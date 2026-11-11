@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""End-to-end tests of the verbs with a fake OpenAI client, no network access required."""
+"""End-to-end tests of the `ai` command with a fake OpenAI client, no network access required."""
 
 import argparse
 import importlib
@@ -23,9 +23,7 @@ from types import SimpleNamespace
 import pytest
 from ros2ai.api import agent as agent_module
 import ros2ai.api.constants as constants
-from ros2ai.verb.exec import ExecVerb
-from ros2ai.verb.query import QueryVerb
-from ros2ai.verb.status import StatusVerb
+from ros2ai.command.ai import AiCommand
 
 
 class FakeCompletion:
@@ -60,9 +58,26 @@ class FakeRos2:
     outputs = {}
 
 
-def fake_chunks(contents):
+def fake_chunks(contents, tool_calls=None, finish_reason='stop'):
+    """Stream the contents and the tool calls as chunks, the arguments are split in two."""
+    def chunk(content=None, tool_calls=None, finish_reason=None):
+        delta = SimpleNamespace(content=content, tool_calls=tool_calls)
+        return SimpleNamespace(
+            choices=[SimpleNamespace(delta=delta, finish_reason=finish_reason)])
     for content in contents:
-        yield SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=content))])
+        yield chunk(content=content)
+    for index, tool_call in enumerate(tool_calls or []):
+        arguments = tool_call.function.arguments
+        half = len(arguments) // 2
+        yield chunk(tool_calls=[SimpleNamespace(
+            index=index, id=tool_call.id, type='function',
+            function=SimpleNamespace(name=tool_call.function.name, arguments=arguments[:half]))])
+        yield chunk(tool_calls=[SimpleNamespace(
+            index=index, id=None, type=None,
+            function=SimpleNamespace(name=None, arguments=arguments[half:]))])
+    yield chunk(finish_reason=finish_reason)
+    # usage chunk without choices
+    yield SimpleNamespace(choices=[])
 
 
 class FakeOpenAI:
@@ -90,15 +105,22 @@ class FakeOpenAI:
         self.create_calls.append(kwargs)
         if FakeOpenAI.error is not None:
             raise FakeOpenAI.error
+        stream = kwargs.get('stream')
         if FakeOpenAI.responses:
             response = FakeOpenAI.responses.pop(0)
             if isinstance(response, Exception):
                 raise response
             if isinstance(response, list):
-                return FakeCompletion(None, tool_calls=fake_tool_calls(response))
+                tool_calls = fake_tool_calls(response)
+                if stream:
+                    return fake_chunks([], tool_calls)
+                return FakeCompletion(None, tool_calls=tool_calls)
+            if stream:
+                return fake_chunks([response])
             return FakeCompletion(response)
-        if kwargs.get('stream'):
-            return fake_chunks([FakeOpenAI.content, None, '!'])
+        if stream:
+            return fake_chunks(
+                [FakeOpenAI.content, None, '!'], finish_reason=FakeOpenAI.finish_reason)
         return FakeCompletion(FakeOpenAI.content, FakeOpenAI.finish_reason)
 
     def _list_models(self):
@@ -161,14 +183,15 @@ def fake_openai(monkeypatch):
     return FakeOpenAI
 
 
-def run_verb(verb, argv):
+def run_command(argv):
     parser = argparse.ArgumentParser(prog='ros2 ai')
-    verb.add_arguments(parser, 'ros2 ai')
-    return verb.main(args=parser.parse_args(argv))
+    command = AiCommand()
+    command.add_arguments(parser, 'ros2 ai')
+    return command.main(parser=parser, args=parser.parse_args(argv))
 
 
 def test_status(fake_openai, capsys):
-    assert run_verb(StatusVerb(), []) == 0
+    assert run_command(['-s']) == 0
     out = capsys.readouterr().out
     assert out == 'fake answer\n'
     client = fake_openai.instances[0]
@@ -183,7 +206,7 @@ def test_status(fake_openai, capsys):
 
 
 def test_status_verbose_list(fake_openai, capsys):
-    assert run_verb(StatusVerb(), ['-vl', '-m', 'gpt-x', '-t', '7']) == 0
+    assert run_command(['-vl', '-m', 'gpt-x', '-t', '7']) == 0
     out = capsys.readouterr().out
     assert out == (
         '----- api_model: gpt-x\n'
@@ -204,7 +227,7 @@ def test_status_verbose_list(fake_openai, capsys):
 
 def test_status_invalid_key(fake_openai, capsys):
     fake_openai.error = RuntimeError('boom')
-    assert run_verb(StatusVerb(), []) == 1
+    assert run_command(['-s']) == 1
     out = capsys.readouterr().out
     assert 'Failed to call LLM API: boom' in out
     assert '[FAILURE] Invalid API key.' in out
@@ -212,61 +235,83 @@ def test_status_invalid_key(fake_openai, capsys):
 
 def test_status_not_finished(fake_openai, capsys):
     fake_openai.finish_reason = 'length'
-    assert run_verb(StatusVerb(), []) == 1
+    assert run_command(['-s']) == 1
     out = capsys.readouterr().out
     assert 'Failed chat completion with: length' in out
     assert '[FAILURE] Invalid API key.' in out
 
 
-def test_query_stream(fake_openai, capsys):
-    assert run_verb(QueryVerb(), ['what', 'is ros']) == 0
-    assert capsys.readouterr().out == 'fake answer!\n\n'
+def test_answer_without_tool_calls(fake_openai, capsys):
+    assert run_command(['what', 'is ros']) == 0
+    assert capsys.readouterr().out == 'fake answer!\n'
     call = fake_openai.instances[0].create_calls[0]
     assert call['stream'] is True
     assert call['messages'] == [
-        {'role': 'system', 'content': constants.ROLE_SYSTEM_QUERY_DEFAULT.format('rolling')},
+        {'role': 'system', 'content': constants.ROLE_SYSTEM_DEFAULT.format('rolling')},
         {'role': 'user', 'content': 'what is ros'},
     ]
+    assert FakeRos2.calls == []
 
 
-def test_query_nostream(fake_openai, capsys):
-    assert run_verb(QueryVerb(), ['hello', '-n']) == 0
+def test_answer_nostream(fake_openai, capsys):
+    assert run_command(['hello', '-n']) == 0
     assert capsys.readouterr().out == 'fake answer\n'
     assert fake_openai.instances[0].create_calls[0]['stream'] is False
 
 
-def test_query_nostream_verbose(fake_openai, capsys):
-    assert run_verb(QueryVerb(), ['hello', '-nv']) == 0
+def test_answer_verbose(fake_openai, capsys):
+    assert run_command(['hello', '-v']) == 0
     out = capsys.readouterr().out
+    assert out.startswith('System role:\n' + constants.ROLE_SYSTEM_DEFAULT.format('rolling'))
+    # raw completion is only available without streaming
+    assert 'FakeCompletion' not in out
+    assert out.endswith('fake answer!\n')
+
+
+def test_answer_nostream_verbose(fake_openai, capsys):
+    assert run_command(['hello', '-nv']) == 0
+    out = capsys.readouterr().out
+    assert out.startswith('System role:\n' + constants.ROLE_SYSTEM_DEFAULT.format('rolling'))
     assert "FakeCompletion('fake answer')" in out
-    assert 'System role:\n' + constants.ROLE_SYSTEM_QUERY_DEFAULT.format('rolling') in out
+    assert out.endswith('fake answer\n')
 
 
-def test_query_verbose_requires_nostream(fake_openai, capsys):
-    assert run_verb(QueryVerb(), ['hello', '-v']) == 0
-    assert capsys.readouterr().out == 'fake answer!\n\n'
+def test_answer_not_finished(fake_openai, capsys):
+    fake_openai.finish_reason = 'length'
+    # the partial content is streamed before the reason
+    assert run_command(['hello']) == 1
+    assert capsys.readouterr().out == 'fake answer!\nFailed chat completion with: length\n'
+    assert run_command(['hello', '-n']) == 1
+    assert capsys.readouterr().out == 'Failed chat completion with: length\n'
 
 
-def test_query_role_argument_and_env(fake_openai, monkeypatch):
-    assert run_verb(QueryVerb(), ['hello', '-r', 'custom {} role']) == 0
+def test_role_argument_and_env(fake_openai, monkeypatch):
+    assert run_command(['hello', '-r', 'custom {} role']) == 0
     call = fake_openai.instances[0].create_calls[0]
     assert call['messages'][0] == {'role': 'system', 'content': 'custom rolling role'}
     monkeypatch.setenv(constants.ROLE_SYSTEM_ENV_VAR, 'env {} role')
-    assert run_verb(QueryVerb(), ['hello']) == 0
+    assert run_command(['hello']) == 0
     call = fake_openai.instances[1].create_calls[0]
     assert call['messages'][0] == {'role': 'system', 'content': 'env rolling role'}
 
 
-def test_query_global_arguments(fake_openai, monkeypatch):
+def test_global_arguments(fake_openai, monkeypatch):
     monkeypatch.setenv(constants.ROS2AI_TEMPERATURE_ENV_VAR, '0.3')
     argv = ['hello', '-m', 'llama3.1', '-u', 'http://127.0.0.1:11434/v1', '-t', '100']
-    assert run_verb(QueryVerb(), argv) == 0
+    assert run_command(argv) == 0
     client = fake_openai.instances[0]
     assert client.base_url == 'http://127.0.0.1:11434/v1'
     call = client.create_calls[0]
     assert call['model'] == 'llama3.1'
     assert call['max_tokens'] == 100
     assert call['temperature'] == 0.3
+
+
+def test_status_prevails_over_request(fake_openai, capsys):
+    assert run_command(['hello', '-s']) == 0
+    assert capsys.readouterr().out == 'fake answer\n'
+    call = fake_openai.instances[0].create_calls[0]
+    assert call['messages'] == [{'role': 'user', 'content': 'Are you available?'}]
 
 
 @pytest.fixture
@@ -281,14 +326,14 @@ def fake_confirm(monkeypatch):
     return recorder
 
 
-def test_exec_dry_run(fake_openai, capsys):
+def test_dry_run(fake_openai, capsys):
     fake_openai.responses = [
         [('ros2_topic_list', {})],
         [('ros2_topic_pub', {'topic': '/chatter', 'type': 'std_msgs/msg/String'})],
         'never requested',
     ]
     FakeRos2.stdout = '/chatter [std_msgs/msg/String]\n'
-    assert run_verb(ExecVerb(), ['publish on', '/chatter', '--dry-run']) == 0
+    assert run_command(['publish on', '/chatter', '--dry-run']) == 0
     out = capsys.readouterr().out
     assert out == (
         '[ros2ai]: ros2 topic list -t\n/chatter [std_msgs/msg/String]\n'
@@ -297,10 +342,10 @@ def test_exec_dry_run(fake_openai, capsys):
     client = fake_openai.instances[0]
     assert len(client.create_calls) == 2
     call = client.create_calls[0]
-    assert call['stream'] is False
+    assert call['stream'] is True
     # the conversation keeps growing after the call, only the prompt is checked here
     assert call['messages'][:2] == [
-        {'role': 'system', 'content': constants.ROLE_SYSTEM_EXEC_DEFAULT.format('rolling')},
+        {'role': 'system', 'content': constants.ROLE_SYSTEM_DEFAULT.format('rolling')},
         {'role': 'user', 'content': 'publish on /chatter'},
     ]
     tool_names = [tool['function']['name'] for tool in call['tools']]
@@ -309,11 +354,11 @@ def test_exec_dry_run(fake_openai, capsys):
     assert 'tool_choice' not in call
 
 
-def test_exec_debug_dry_run(fake_openai, capsys):
+def test_verbose_dry_run(fake_openai, capsys):
     fake_openai.responses = [[('ros2_cli', {'arguments': ['daemon', 'stop']})]]
-    assert run_verb(ExecVerb(), ['stop daemon', '-d', '--dry-run']) == 0
+    assert run_command(['stop daemon', '-nv', '--dry-run']) == 0
     out = capsys.readouterr().out
-    assert out.startswith('System role:\n' + constants.ROLE_SYSTEM_EXEC_DEFAULT.format('rolling'))
+    assert out.startswith('System role:\n' + constants.ROLE_SYSTEM_DEFAULT.format('rolling'))
     assert 'FakeCompletion(None)' in out
     assert 'Tool call: ros2_cli({"arguments": ["daemon", "stop"]})\n' in out
     assert out.endswith(
@@ -322,14 +367,14 @@ def test_exec_debug_dry_run(fake_openai, capsys):
     assert FakeRos2.calls == []
 
 
-def test_exec_read_only_tools(fake_openai, capsys):
+def test_read_only_tools(fake_openai, capsys):
     fake_openai.responses = [
         [('ros2_node_list', {})],
         [('ros2_node_info', {'node': '/talker'})],
         'The /talker node publishes /chatter.',
     ]
     FakeRos2.stdout = '/talker\n'
-    assert run_verb(ExecVerb(), ['give me', 'all nodes']) == 0
+    assert run_command(['give me', 'all nodes']) == 0
     assert FakeRos2.calls == [['ros2', 'node', 'list'], ['ros2', 'node', 'info', '/talker']]
     out = capsys.readouterr().out
     assert out == (
@@ -350,13 +395,23 @@ def test_exec_read_only_tools(fake_openai, capsys):
     ]
 
 
-def test_exec_mutating_tool_confirmed(fake_openai, fake_confirm, capsys):
+def test_read_only_tools_nostream(fake_openai, capsys):
+    fake_openai.responses = [[('ros2_node_list', {})], 'done']
+    assert run_command(['give me', 'all nodes', '-n']) == 0
+    assert FakeRos2.calls == [['ros2', 'node', 'list']]
+    assert capsys.readouterr().out == '[ros2ai]: ros2 node list\nfake ros2 output\ndone\n'
+    calls = fake_openai.instances[0].create_calls
+    assert all(call['stream'] is False for call in calls)
+    assert calls[1]['messages'][2]['tool_calls'][0]['id'] == 'call_0'
+
+
+def test_mutating_tool_confirmed(fake_openai, fake_confirm, capsys):
     fake_openai.responses = [
         [('ros2_topic_pub', {'topic': '/chatter', 'type': 'std_msgs/msg/String',
                              'values': '{data: hello}'})],
         'published',
     ]
-    assert run_verb(ExecVerb(), ['say hello', 'on /chatter']) == 0
+    assert run_command(['say hello', 'on /chatter']) == 0
     assert fake_confirm.commands == [
         "ros2 topic pub --once -w 0 /chatter std_msgs/msg/String '{data: hello}'"]
     assert FakeRos2.calls == [
@@ -365,24 +420,24 @@ def test_exec_mutating_tool_confirmed(fake_openai, fake_confirm, capsys):
     assert capsys.readouterr().out.endswith('published\n')
 
 
-def test_exec_mutating_tool_declined(fake_openai, fake_confirm, capsys):
+def test_mutating_tool_declined(fake_openai, fake_confirm, capsys):
     fake_confirm.answer = False
     fake_openai.responses = [[('ros2_param_set', {'node': '/n', 'name': 'p', 'value': '1'})], 'ok']
-    assert run_verb(ExecVerb(), ['set p']) == 0
+    assert run_command(['set p']) == 0
     assert fake_confirm.commands == ['ros2 param set /n p 1']
     assert FakeRos2.calls == []
     tool_message = fake_openai.instances[0].create_calls[1]['messages'][3]
     assert tool_message['content'] == 'the user declined to execute the command.'
 
 
-def test_exec_mutating_tool_yes(fake_openai, capsys):
+def test_mutating_tool_yes(fake_openai, capsys):
     fake_openai.responses = [
         [('ros2_cli', {'arguments': ['lifecycle', 'set', '/n', 'configure']})], 'configured']
-    assert run_verb(ExecVerb(), ['configure /n', '-y']) == 0
+    assert run_command(['configure /n', '-y']) == 0
     assert FakeRos2.calls == [['ros2', 'lifecycle', 'set', '/n', 'configure']]
 
 
-def test_exec_long_running_tool(fake_openai, fake_confirm, monkeypatch, capsys):
+def test_long_running_tool(fake_openai, fake_confirm, monkeypatch, capsys):
     executed = []
     monkeypatch.setattr(
         agent_module, 'run_executable', lambda *, command: executed.append(command) or 7)
@@ -390,104 +445,71 @@ def test_exec_long_running_tool(fake_openai, fake_confirm, monkeypatch, capsys):
         [('ros2_run', {'package': 'demo_nodes_cpp', 'executable': 'talker'})],
         'never requested',
     ]
-    assert run_verb(ExecVerb(), ['start the talker']) == 7
+    assert run_command(['start the talker']) == 7
     assert fake_confirm.commands == ['ros2 run demo_nodes_cpp talker']
     assert executed == [['ros2', 'run', 'demo_nodes_cpp', 'talker']]
     assert len(fake_openai.instances[0].create_calls) == 1
     assert capsys.readouterr().out == '[ros2ai]: ros2 run demo_nodes_cpp talker\n'
 
 
-def test_exec_shell_characters_are_literal(fake_openai):
+def test_shell_characters_are_literal(fake_openai):
     topic = '/chatter; rm -rf / $(whoami) > /tmp/x'
     fake_openai.responses = [[('ros2_topic_echo', {'topic': topic})], 'done']
-    assert run_verb(ExecVerb(), ['echo it']) == 0
+    assert run_command(['echo it']) == 0
     assert FakeRos2.calls == [['ros2', 'topic', 'echo', '--once', topic]]
 
 
-def test_exec_tool_error_recovered(fake_openai, capsys):
+def test_tool_error_recovered(fake_openai, capsys):
     fake_openai.responses = [[('ros2_node_info', {})], [('ros2_node_info', {'node': '/t'})], 'ok']
-    assert run_verb(ExecVerb(), ['info']) == 0
+    assert run_command(['info']) == 0
     assert FakeRos2.calls == [['ros2', 'node', 'info', '/t']]
     tool_message = fake_openai.instances[0].create_calls[1]['messages'][3]
     assert tool_message['content'] == "error: missing required parameter 'node'"
     assert '[ros2ai]: tool call ros2_node_info failed' in capsys.readouterr().out
 
 
-def test_exec_api_failure(fake_openai, capsys):
+def test_api_failure(fake_openai, capsys):
     fake_openai.error = RuntimeError('boom')
-    assert run_verb(ExecVerb(), ['hello']) == 1
+    assert run_command(['hello']) == 1
     assert capsys.readouterr().out == 'Failed to call LLM API: boom\n'
     assert len(fake_openai.instances[0].create_calls) == 1
 
 
-def test_exec_fallback_single_command(fake_openai, capsys):
+def test_fallback_without_tools(fake_openai, capsys):
     fake_openai.responses = [
         RuntimeError('model does not support tools'),
-        'Sure:\n```\nros2 topic list && ros2 node list\n```',
+        'Run `ros2 topic list` to see the topics.',
     ]
-    FakeRos2.stdout = '/chatter\n'
-    assert run_verb(ExecVerb(), ['give me', 'all topics']) == 0
+    assert run_command(['give me', 'all topics']) == 0
     out = capsys.readouterr().out
-    assert 'Failed to call LLM API: model does not support tools\n' in out
-    assert 'Tool calling is not supported, falling back to the single command mode.\n' in out
-    assert 'Warning: Multiple commands detected' in out
-    assert out.endswith('[ros2ai]: ros2 topic list\n/chatter\n')
-    assert FakeRos2.calls == [['ros2', 'topic', 'list']]
+    assert out == (
+        'Failed to call LLM API: model does not support tools\n'
+        'Tool calling is not supported, answering without tools.\n'
+        'Run `ros2 topic list` to see the topics.\n')
+    assert FakeRos2.calls == []
     calls = fake_openai.instances[0].create_calls
     assert len(calls) == 2
     assert 'tools' in calls[0]
     assert 'tools' not in calls[1]
-    assert calls[1]['messages'][0] == {
-        'role': 'system', 'content': constants.ROLE_SYSTEM_EXEC_COMMAND.format('rolling')}
+    assert calls[1]['messages'] == calls[0]['messages']
 
 
-def test_exec_fallback_dry_run_and_debug(fake_openai, capsys):
-    fake_openai.responses = [RuntimeError('no tool support'), '`ros2 param set /n p 1`']
-    assert run_verb(ExecVerb(), ['set p', '-d', '--dry-run']) == 0
-    out = capsys.readouterr().out
-    assert "FakeCompletion('`ros2 param set /n p 1`')" in out
-    assert 'System role:\n' + constants.ROLE_SYSTEM_EXEC_COMMAND.format('rolling') in out
-    assert out.endswith("Command Candidate: 'ros2 param set /n p 1'\n")
-    assert FakeRos2.calls == []
-    # read-only commands are executed even in dry-run
-    fake_openai.responses = [RuntimeError('no tool support'), 'ros2 node list']
-    assert run_verb(ExecVerb(), ['nodes', '--dry-run']) == 0
-    assert FakeRos2.calls == [['ros2', 'node', 'list']]
+def test_fallback_failure(fake_openai, capsys):
+    fake_openai.responses = [RuntimeError('no tool support'), RuntimeError('still failing')]
+    assert run_command(['hello']) == 1
+    assert capsys.readouterr().out.endswith('Failed to call LLM API: still failing\n')
 
 
-def test_exec_fallback_mutating_confirmed(fake_openai, fake_confirm):
-    fake_openai.responses = [RuntimeError('no tool support'), 'ros2 param set /n p 1']
-    FakeRos2.returncode = 2
-    assert run_verb(ExecVerb(), ['set p']) == 2
-    assert fake_confirm.commands == ['ros2 param set /n p 1']
-    assert FakeRos2.calls == [['ros2', 'param', 'set', '/n', 'p', '1']]
-
-
-def test_exec_fallback_rejects_non_ros2(fake_openai, capsys):
-    fake_openai.responses = [RuntimeError('no tool support'), 'ls -la; rm -rf /']
-    assert run_verb(ExecVerb(), ['list files']) == 1
-    assert "Not a ros2 command: 'ls -la'" in capsys.readouterr().out
-    assert FakeRos2.calls == []
-
-
-def test_exec_fallback_only_on_first_step(fake_openai, capsys):
+def test_fallback_only_on_first_step(fake_openai, capsys):
     fake_openai.responses = [[('ros2_node_list', {})], RuntimeError('tool call id invalid')]
-    assert run_verb(ExecVerb(), ['nodes']) == 1
-    assert 'falling back' not in capsys.readouterr().out
+    assert run_command(['nodes']) == 1
+    assert 'answering without tools' not in capsys.readouterr().out
     assert len(fake_openai.instances[0].create_calls) == 2
-
-
-def test_exec_role_argument(fake_openai, capsys):
-    fake_openai.responses = ['nothing to do']
-    assert run_verb(ExecVerb(), ['hello', '-r', 'exec {} role']) == 0
-    call = fake_openai.instances[0].create_calls[0]
-    assert call['messages'][0] == {'role': 'system', 'content': 'exec rolling role'}
-    assert capsys.readouterr().out == 'nothing to do\n'
 
 
 def test_anthropic_endpoint_headers(fake_openai):
     argv = ['hello', '-u', constants.ROS_ANTHROPIC_DEFAULT_ENDPOINT, '-m', 'claude-opus-5-5']
-    assert run_verb(QueryVerb(), argv) == 0
+    assert run_command(argv) == 0
     client = fake_openai.instances[0]
     assert client.api_key == 'sk-test'
     assert client.base_url == constants.ROS_ANTHROPIC_DEFAULT_ENDPOINT
@@ -504,7 +526,7 @@ def test_legacy_environment_variables(fake_openai, monkeypatch):
     monkeypatch.setenv(constants.ROS_OPENAI_MODEL_NAME_ENV_VAR, 'llama3.1')
     monkeypatch.setenv(
         constants.ROS_OPENAI_ENDPOINT_ENV_VAR, constants.ROS_OLLAMA_DEFAULT_ENDPOINT)
-    assert run_verb(QueryVerb(), ['hello']) == 0
+    assert run_command(['hello']) == 0
     client = fake_openai.instances[0]
     assert client.api_key == 'sk-legacy'
     assert client.base_url == constants.ROS_OLLAMA_DEFAULT_ENDPOINT
@@ -513,7 +535,7 @@ def test_legacy_environment_variables(fake_openai, monkeypatch):
     # generic variables prevail over the legacy ones
     monkeypatch.setenv(constants.ROS2AI_MODEL_NAME_ENV_VAR, 'gemma4')
     monkeypatch.setenv(constants.ROS2AI_ENDPOINT_ENV_VAR, 'http://10.0.0.1:11434/v1')
-    assert run_verb(QueryVerb(), ['hello']) == 0
+    assert run_command(['hello']) == 0
     client = fake_openai.instances[1]
     assert client.base_url == 'http://10.0.0.1:11434/v1'
     assert client.create_calls[0]['model'] == 'gemma4'
@@ -553,7 +575,7 @@ def test_exec_composite_tool(fake_openai, monkeypatch, capsys):
             return 'average rate: 1.000\n\tmin: 1.000s max: 1.000s\n', None
     monkeypatch.setattr(subprocess, 'Popen', FakePopen)
 
-    assert run_verb(ExecVerb(), ['is /talker healthy?']) == 0
+    assert run_command(['is /talker healthy?']) == 0
     assert FakeRos2.calls == [
         ['ros2', 'node', 'info', '/talker'],
         ['ros2', 'topic', 'hz', '/chatter'],

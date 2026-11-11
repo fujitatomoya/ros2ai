@@ -52,13 +52,13 @@ class FakeClient:
         return self._current is not None
 
     def get_message(self):
+        if self.calls[-1].stream and self._current is not None and self._current.content:
+            # the streamed content is printed by the client as it arrives
+            print(self._current.content)
         return self._current
 
     def get_error(self):
         return None
-
-    def print_result(self):
-        print('printed result')
 
     def print_all(self):
         print('printed all')
@@ -94,9 +94,15 @@ def no_confirm():
     return lambda command: pytest.fail(f'unexpected confirmation for {command}')
 
 
+def options(**kwargs):
+    """Agent options without streaming, the content is printed by the agent."""
+    kwargs.setdefault('stream', False)
+    return AgentOptions(**kwargs)
+
+
 def test_answer_without_tools(capsys, no_confirm):
     client = FakeClient([message(content='just an answer')])
-    agent = Agent(client, FakeProvider(), AgentOptions(), confirm=no_confirm)
+    agent = Agent(client, FakeProvider(), options(), confirm=no_confirm)
     assert agent.run('system', 'request') == 0
     assert capsys.readouterr().out == 'just an answer\n'
     assert agent.steps == 1
@@ -109,13 +115,41 @@ def test_answer_without_tools(capsys, no_confirm):
     ]
 
 
+def test_streamed_answer(capsys, no_confirm):
+    client = FakeClient([message(content='streamed answer')])
+    agent = Agent(client, FakeProvider(), AgentOptions(), confirm=no_confirm)
+    assert agent.run('system', 'request') == 0
+    # printed once by the client, not again by the agent
+    assert capsys.readouterr().out == 'streamed answer\n'
+    assert client.calls[0].stream is True
+
+
+def test_streamed_tool_loop(capsys, no_confirm):
+    client = FakeClient([
+        message(content='looking', tool_calls=[tool_call('c1', 'read', {})]),
+        message(content='done'),
+    ])
+    agent = Agent(client, FakeProvider(), AgentOptions(), confirm=no_confirm)
+    assert agent.run('system', 'request') == 0
+    assert capsys.readouterr().out == 'looking\n[ros2ai]: ros2 read\noutput of read\ndone\n'
+    assert all(parameters.stream for parameters in client.calls)
+
+
+def test_answer_without_tools_offered(capsys, no_confirm):
+    client = FakeClient([message(content='plain answer')])
+    agent = Agent(client, FakeProvider(), options(), confirm=no_confirm)
+    assert agent.run('system', 'request', tools=False) == 0
+    assert capsys.readouterr().out == 'plain answer\n'
+    assert client.calls[0].tools is None
+
+
 def test_read_only_tool_loop(capsys, no_confirm):
     client = FakeClient([
         message(tool_calls=[tool_call('c1', 'read', {'args': ['a']})]),
         message(content='done', tool_calls=[]),
     ])
     provider = FakeProvider()
-    agent = Agent(client, provider, AgentOptions(), confirm=no_confirm)
+    agent = Agent(client, provider, options(), confirm=no_confirm)
     assert agent.run('system', 'request') == 0
     assert provider.executed == [['ros2', 'read', 'a']]
     assert capsys.readouterr().out == '[ros2ai]: ros2 read a\noutput of read\ndone\n'
@@ -133,7 +167,7 @@ def test_assistant_content_kept_with_tool_calls(no_confirm):
         message(content='let me check', tool_calls=[tool_call('c1', 'read', {})]),
         message(content='done'),
     ])
-    agent = Agent(client, FakeProvider(), AgentOptions(), confirm=no_confirm)
+    agent = Agent(client, FakeProvider(), options(), confirm=no_confirm)
     assert agent.run('system', 'request') == 0
     assert client.calls[1].messages[2]['content'] == 'let me check'
 
@@ -145,7 +179,7 @@ def test_parallel_tool_calls(no_confirm):
         message(content='done'),
     ])
     provider = FakeProvider()
-    agent = Agent(client, provider, AgentOptions(), confirm=no_confirm)
+    agent = Agent(client, provider, options(), confirm=no_confirm)
     assert agent.run('system', 'request') == 0
     assert provider.executed == [['ros2', 'read'], ['ros2', 'read', 'b']]
     tool_messages = client.calls[1].messages[3:]
@@ -163,7 +197,7 @@ def test_mutating_tool_confirmed(capsys):
     def confirm(command):
         asked.append(command)
         return True
-    agent = Agent(client, provider, AgentOptions(), confirm=confirm)
+    agent = Agent(client, provider, options(), confirm=confirm)
     assert agent.run('system', 'request') == 0
     assert asked == ['ros2 write x']
     assert provider.executed == [['ros2', 'write', 'x']]
@@ -175,7 +209,7 @@ def test_mutating_tool_declined(capsys):
         message(content='ok, not done'),
     ])
     provider = FakeProvider()
-    agent = Agent(client, provider, AgentOptions(), confirm=lambda command: False)
+    agent = Agent(client, provider, options(), confirm=lambda command: False)
     assert agent.run('system', 'request') == 0
     assert provider.executed == []
     assert client.calls[1].messages[3] == {
@@ -190,7 +224,7 @@ def test_mutating_tool_auto_approve(no_confirm):
         message(content='done'),
     ])
     provider = FakeProvider()
-    agent = Agent(client, provider, AgentOptions(auto_approve=True), confirm=no_confirm)
+    agent = Agent(client, provider, options(auto_approve=True), confirm=no_confirm)
     assert agent.run('system', 'request') == 0
     assert provider.executed == [['ros2', 'write']]
 
@@ -204,7 +238,7 @@ def test_long_running_tool_runs_foreground(monkeypatch, capsys):
     monkeypatch.setattr(
         agent_module, 'run_executable', lambda *, command: executed.append(command) or 42)
     provider = FakeProvider()
-    agent = Agent(client, provider, AgentOptions(), confirm=lambda command: True)
+    agent = Agent(client, provider, options(), confirm=lambda command: True)
     assert agent.run('system', 'request') == 42
     assert executed == [['ros2', 'spin', 'talker']]
     assert provider.executed == []
@@ -220,7 +254,7 @@ def test_dry_run_executes_read_only_prints_candidates_and_stops(capsys, no_confi
         message(content='never requested'),
     ])
     provider = FakeProvider()
-    agent = Agent(client, provider, AgentOptions(dry_run=True), confirm=no_confirm)
+    agent = Agent(client, provider, options(dry_run=True), confirm=no_confirm)
     assert agent.run('system', 'request') == 0
     assert provider.executed == [['ros2', 'read']]
     assert len(client.calls) == 2
@@ -233,7 +267,7 @@ def test_dry_run_executes_read_only_prints_candidates_and_stops(capsys, no_confi
 
 def test_dry_run_without_candidates_finishes(capsys, no_confirm):
     client = FakeClient([message(tool_calls=[tool_call('c1', 'read', {})]), message(content='ok')])
-    agent = Agent(client, FakeProvider(), AgentOptions(dry_run=True), confirm=no_confirm)
+    agent = Agent(client, FakeProvider(), options(dry_run=True), confirm=no_confirm)
     assert agent.run('system', 'request') == 0
     assert agent.candidates == 0
     assert capsys.readouterr().out.endswith('ok\n')
@@ -247,7 +281,7 @@ def test_tool_errors_returned_to_model(capsys, no_confirm):
         message(content='sorry'),
     ])
     provider = FakeProvider()
-    agent = Agent(client, provider, AgentOptions(), confirm=no_confirm)
+    agent = Agent(client, provider, options(), confirm=no_confirm)
     assert agent.run('system', 'request') == 0
     assert provider.executed == []
     tool_messages = client.calls[1].messages[3:]
@@ -266,7 +300,7 @@ def test_output_truncated_for_model_but_printed(capsys, no_confirm):
 
     client = FakeClient([message(tool_calls=[tool_call('c1', 'read', {})]), message(content='')])
     agent = Agent(
-        client, LongOutputProvider(), AgentOptions(output_limit=30), confirm=no_confirm)
+        client, LongOutputProvider(), options(output_limit=30), confirm=no_confirm)
     assert agent.run('system', 'request') == 0
     content = client.calls[1].messages[3]['content']
     assert content == 'x' * 20 + '\n... [70 characters truncated] ...\n' + 'x' * 10
@@ -280,14 +314,14 @@ def test_empty_output(no_confirm):
             return ToolResult('', 0)
 
     client = FakeClient([message(tool_calls=[tool_call('c1', 'read', {})]), message(content='')])
-    agent = Agent(client, EmptyProvider(), AgentOptions(), confirm=no_confirm)
+    agent = Agent(client, EmptyProvider(), options(), confirm=no_confirm)
     assert agent.run('system', 'request') == 0
     assert client.calls[1].messages[3]['content'] == '(no output)'
 
 
 def test_max_steps(capsys, no_confirm):
     client = FakeClient([message(tool_calls=[tool_call('c1', 'read', {})])] * 5)
-    agent = Agent(client, FakeProvider(), AgentOptions(max_steps=3), confirm=no_confirm)
+    agent = Agent(client, FakeProvider(), options(max_steps=3), confirm=no_confirm)
     assert agent.run('system', 'request') == 1
     assert len(client.calls) == 3
     assert agent.steps == 3
@@ -295,7 +329,7 @@ def test_max_steps(capsys, no_confirm):
 
 
 def test_api_failure(capsys, no_confirm):
-    agent = Agent(FakeClient([]), FakeProvider(), AgentOptions(), confirm=no_confirm)
+    agent = Agent(FakeClient([]), FakeProvider(), options(), confirm=no_confirm)
     assert agent.run('system', 'request') == 1
     assert agent.steps == 1
 
@@ -304,19 +338,21 @@ def test_not_finished(capsys, no_confirm):
     class NotFinishedClient(FakeClient):
 
         def get_message(self):
+            # the client prints the reason
+            print('not finished')
             return None
 
     agent = Agent(
-        NotFinishedClient([message(content='x')]), FakeProvider(), AgentOptions(),
+        NotFinishedClient([message(content='x')]), FakeProvider(), options(),
         confirm=no_confirm)
     assert agent.run('system', 'request') == 1
-    assert capsys.readouterr().out == 'printed result\n'
+    assert capsys.readouterr().out == 'not finished\n'
 
 
-def test_debug_prints(capsys, no_confirm):
+def test_verbose_prints(capsys, no_confirm):
     client = FakeClient([message(tool_calls=[tool_call('c1', 'read', {'args': ['a']})]),
                          message(content='done')])
-    agent = Agent(client, FakeProvider(), AgentOptions(debug=True), confirm=no_confirm)
+    agent = Agent(client, FakeProvider(), options(verbose=True), confirm=no_confirm)
     assert agent.run('system', 'request') == 0
     out = capsys.readouterr().out
     assert out.count('printed all') == 2
@@ -326,17 +362,17 @@ def test_debug_prints(capsys, no_confirm):
 
 def test_execute_command(capsys, monkeypatch):
     provider = FakeProvider()
-    agent = Agent(FakeClient([]), provider, AgentOptions(), confirm=lambda command: False)
+    agent = Agent(FakeClient([]), provider, options(), confirm=lambda command: False)
     assert agent.execute_command(ToolCommand(['ros2', 'read'], ToolPolicy.READ_ONLY)) == 0
     assert provider.executed == [['ros2', 'read']]
     assert agent.execute_command(ToolCommand(['ros2', 'write'], ToolPolicy.MUTATING)) == 1
-    agent = Agent(FakeClient([]), provider, AgentOptions(dry_run=True))
+    agent = Agent(FakeClient([]), provider, options(dry_run=True))
     assert agent.execute_command(ToolCommand(['ros2', 'write'], ToolPolicy.MUTATING)) == 0
     assert agent.execute_command(ToolCommand(['ros2', 'read'], ToolPolicy.READ_ONLY)) == 0
     assert provider.executed == [['ros2', 'read'], ['ros2', 'read']]
     assert capsys.readouterr().out.count("Command Candidate: 'ros2 write'") == 1
     monkeypatch.setattr(agent_module, 'run_executable', lambda *, command: 3)
-    agent = Agent(FakeClient([]), provider, AgentOptions(auto_approve=True))
+    agent = Agent(FakeClient([]), provider, options(auto_approve=True))
     assert agent.execute_command(ToolCommand(['ros2', 'spin'], ToolPolicy.LONG_RUNNING)) == 3
 
 

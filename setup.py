@@ -35,13 +35,5 @@ setup(
         'ros2cli.command': [
             'ai = ros2ai.command.ai:AiCommand',
         ],
-        'ros2ai.extension_point': [
-            'ros2ai.verb = ros2ai.verb:VerbExtension',
-        ],
-        'ros2ai.verb': [
-            'status = ros2ai.verb.status:StatusVerb',
-            'query = ros2ai.verb.query:QueryVerb',
-            'exec = ros2ai.verb.exec:ExecVerb',
-        ],
     }
 )

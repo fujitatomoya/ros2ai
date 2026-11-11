@@ -14,9 +14,18 @@
 
 import ros2ai.api.constants as constants
 
+# examples printed at the end of `ros2 ai -h`
+EXAMPLES = """\
+examples:
+  ros2 ai "how can I check the available topics?"
+  ros2 ai "give me all topics"
+  ros2 ai "publish hello message on /chatter topic" -y
+  ros2 ai --status --list-models
+"""
 
-def add_global_arguments(parser):
-    """Add the arguments shared by the `ai` command and every verb."""
+
+def add_arguments(parser):
+    """Add the arguments of the `ai` command, the request and the options."""
     default_models = ', '.join([
         constants.ROS_OPENAI_DEFAULT_MODEL,
         constants.ROS_ANTHROPIC_DEFAULT_MODEL,
@@ -25,6 +34,10 @@ def add_global_arguments(parser):
         constants.ROS_OPENAI_DEFAULT_ENDPOINT,
         constants.ROS_ANTHROPIC_DEFAULT_ENDPOINT,
         constants.ROS_OLLAMA_DEFAULT_ENDPOINT])
+    parser.add_argument(
+        'request', nargs='*', default=[], metavar='<request>',
+        help='Question or operation request to the ROS 2 assistant, '
+             'multiple words are joined with spaces, or enclosed in double quotes.')
     parser.add_argument(
         '-m', '--model', metavar='<model>', type=str, default=None,
         help=f'Set LLM model (e.g {default_models}) or '
@@ -38,10 +51,32 @@ def add_global_arguments(parser):
     parser.add_argument(
         '-t', '--token', metavar='<token>', type=int, default=None,
         help='Set LLM API maximum token (default %(default)s)')
-
-
-def add_role_argument(parser):
-    """Add the system role argument shared by the verbs that prompt the model."""
     parser.add_argument(
         '-r', '--role', metavar='<role>', type=str, default=None,
-        help="Define the prompt's system role.")
+        help="Define the prompt's system role, `{}` is replaced with the ROS distribution name.")
+    parser.add_argument(
+        '-n', '--nostream',
+        action='store_true',
+        help='Prints using no streaming completion responses.')
+    parser.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help='Prints detailed information: configuration, system role, tool calls and results, '
+             'and raw completions (only available with nostream option).')
+    parser.add_argument(
+        '-y', '--yes',
+        action='store_true',
+        help='Executes the commands that change the system without confirmation.')
+    parser.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='Prints the commands that change the system instead of executing them, '
+             'read-only commands are still executed.')
+    parser.add_argument(
+        '-s', '--status',
+        action='store_true',
+        help='Checks LLM API status and configuration instead of sending the request.')
+    parser.add_argument(
+        '-l', '--list-models',
+        action='store_true',
+        help='Prints all available models on the endpoint (implies --status).')

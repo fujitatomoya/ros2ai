@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 
 from openai import OpenAI
 
@@ -43,6 +43,97 @@ def chat_messages(system_role: str, user_content: str) -> list:
         {'role': 'system', 'content': system_role},
         {'role': 'user', 'content': user_content},
     ]
+
+
+@dataclass
+class ToolCallFunction:
+    """Function of a tool call, in the shape of the OpenAI completion message."""
+
+    name: str = ''
+    arguments: str = ''
+
+
+@dataclass
+class ToolCall:
+    """Tool call of a completion message, in the shape of the OpenAI completion message."""
+
+    # the attribute names follow the OpenAI object so that the agent can use either
+    id: Optional[str] = None  # noqa: A003
+    function: ToolCallFunction = field(default_factory=ToolCallFunction)
+    type: str = 'function'  # noqa: A003
+
+
+@dataclass
+class CompletionMessage:
+    """Completion message assembled from the streamed chunks."""
+
+    content: Optional[str] = None
+    tool_calls: List[ToolCall] = field(default_factory=list)
+
+
+def assemble_stream(chunks, on_content: Optional[Callable[[str], None]] = None):
+    """
+    Assemble the streamed chunks into a completion message.
+
+    The content deltas are passed to `on_content` as they arrive, and the tool call deltas
+    are accumulated by their index, the arguments are concatenated.
+
+    :param chunks: iterable of the streamed chunks of the chat completion.
+    :param on_content: callback invoked with each content delta.
+    :return: tuple of the assembled message and the finish reason (None if not reported).
+    """
+    content = []
+    tool_calls = {}
+    finish_reason = None
+    for chunk in chunks:
+        choices = getattr(chunk, 'choices', None)
+        if not choices:
+            # e.g the usage chunk at the end of the stream
+            continue
+        choice = choices[0]
+        delta = getattr(choice, 'delta', None)
+        if delta is not None:
+            text = getattr(delta, 'content', None)
+            if text:
+                content.append(text)
+                if on_content is not None:
+                    on_content(text)
+            for delta_call in getattr(delta, 'tool_calls', None) or []:
+                next_index = max(tool_calls, default=-1) + 1
+                index = getattr(delta_call, 'index', None)
+                if index is None:
+                    index = next_index
+                call_id = getattr(delta_call, 'id', None)
+                tool_call = tool_calls.get(index)
+                if tool_call is not None and call_id and tool_call.id and call_id != tool_call.id:
+                    # some endpoints reuse the index for every tool call
+                    index, tool_call = next_index, None
+                if tool_call is None:
+                    tool_call = ToolCall()
+                    tool_calls[index] = tool_call
+                if call_id:
+                    tool_call.id = call_id
+                function = getattr(delta_call, 'function', None)
+                if function is not None:
+                    name = getattr(function, 'name', None)
+                    if name:
+                        tool_call.function.name = name
+                    arguments = getattr(function, 'arguments', None)
+                    if arguments:
+                        tool_call.function.arguments += arguments
+        if getattr(choice, 'finish_reason', None):
+            finish_reason = choice.finish_reason
+    calls = [tool_calls[index] for index in sorted(tool_calls)]
+    for number, tool_call in enumerate(calls):
+        if not tool_call.id:
+            # the id is required to return the tool result to the model
+            tool_call.id = f'call_{number}'
+    message = CompletionMessage(content=''.join(content) or None, tool_calls=calls)
+    return message, finish_reason
+
+
+def _print_delta(text: str):
+    print(text, end='', flush=True)
 
 
 class ChatCompletionClient:
@@ -102,16 +193,10 @@ class ChatCompletionClient:
         return self._completion.choices[0]
 
     def print_result(self):
-        """Print the completion result, nothing is printed if the call failed."""
-        if self._completion is None:
+        """Print the completion result, only available without streaming."""
+        if self._completion is None or self._stream:
             return
-        if self._stream:
-            # TODO@fujitatomoya: check `finish_reason` in stream if available?
-            for chunk in self._completion:
-                if chunk.choices[0].delta.content is not None:
-                    print(chunk.choices[0].delta.content, end='')
-            print('\n')
-        elif self._choice().finish_reason != 'stop':
+        if self._choice().finish_reason != 'stop':
             print('Failed chat completion with: ' + self._choice().finish_reason)
         else:
             print(self._choice().message.content)
@@ -132,14 +217,25 @@ class ChatCompletionClient:
         """
         Get the completion message including the tool calls.
 
-        :return: message of the completion, None if streaming, failed or not finished.
+        When streaming, the content is printed as it arrives and the message is assembled
+        from the chunks. The reason is printed if the completion did not finish.
+
+        :return: message of the completion, None if failed or not finished.
         """
-        if self._completion is None or self._stream:
+        if self._completion is None:
             return None
-        choice = self._choice()
-        if choice.finish_reason != 'stop' and not getattr(choice.message, 'tool_calls', None):
+        if self._stream:
+            message, finish_reason = assemble_stream(self._completion, on_content=_print_delta)
+            if message.content:
+                # end the line of the streamed content
+                print()
+        else:
+            choice = self._choice()
+            message, finish_reason = choice.message, choice.finish_reason
+        if finish_reason not in (None, 'stop', 'tool_calls') and not message.tool_calls:
+            print('Failed chat completion with: ' + finish_reason)
             return None
-        return choice.message
+        return message
 
     def print_all(self):
         """Print the raw completion, only available without streaming."""
