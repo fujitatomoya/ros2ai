@@ -48,26 +48,19 @@ ROS2AI_DEFAULT_ENDPOINT = ROS_OPENAI_DEFAULT_ENDPOINT
 # The system message helps set the behavior of the assistant.
 # For example, you can modify the personality of the assistant or provide specific
 # instructions about how it should behave throughout the conversation.
-# However note that the system message is optional and the model’s behavior without a system
+# However note that the system message is optional and the model's behavior without a system
 # message is likely to be similar to using a generic message such as "You are a helpful assistant."
-# TODO@fujitatomoya: ROS_DISTRO would be better to assistant setting.
-ROLE_SYSTEM_QUERY_DEFAULT = \
-    'You are a Robot Operating System version 2 (as known as ROS2) {} distribution ' \
-    'professional assistant who can provide helpful answers against any questions.'
-ROLE_SYSTEM_EXEC_DEFAULT = \
-    'You are a Robot Operating System 2 (as known as ROS 2) {} distribution operator. ' \
-    'Use the provided tools to inspect and operate the ROS 2 system on behalf of the user. ' \
-    'Inspect the system with read-only tools before changing anything, ' \
-    'use exactly the names reported by the tools, ' \
-    'and finish with a brief summary of the result.'
-# Used when the endpoint or model does not support tool calling (function calling),
-# the model is asked for a single `ros2` command line instead.
-ROLE_SYSTEM_EXEC_COMMAND = \
+# `{}` is replaced with the ROS distribution name.
+ROLE_SYSTEM_DEFAULT = \
     'You are a Robot Operating System 2 (as known as ROS 2) {} distribution ' \
-    'command line executor, provides single executable command string only ' \
-    'without any comments or code blocks or backticks.'
+    'professional assistant who can provide helpful answers against any questions. ' \
+    'When the user asks to inspect or operate the ROS 2 system, use the provided tools: ' \
+    'inspect the system with read-only tools before changing anything, ' \
+    'use exactly the names reported by the tools, ' \
+    'and finish with a brief summary of the result. ' \
+    'If no tools are provided, explain the commands that the user can run instead.'
 
-# Tool calling (function calling) limits for the `exec` agent loop.
+# Tool calling (function calling) limits for the agent loop.
 # Maximum number of chat completions (steps) for a single request.
 ROS2AI_MAX_STEPS = 10
 # Maximum number of characters of a tool output returned to the model, the head and the tail

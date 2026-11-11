@@ -109,6 +109,14 @@ def test_answer_without_tools(capsys, no_confirm):
     ]
 
 
+def test_answer_without_tools_offered(capsys, no_confirm):
+    client = FakeClient([message(content='plain answer')])
+    agent = Agent(client, FakeProvider(), AgentOptions(), confirm=no_confirm)
+    assert agent.run('system', 'request', tools=False) == 0
+    assert capsys.readouterr().out == 'plain answer\n'
+    assert client.calls[0].tools is None
+
+
 def test_read_only_tool_loop(capsys, no_confirm):
     client = FakeClient([
         message(tool_calls=[tool_call('c1', 'read', {'args': ['a']})]),
@@ -313,10 +321,10 @@ def test_not_finished(capsys, no_confirm):
     assert capsys.readouterr().out == 'printed result\n'
 
 
-def test_debug_prints(capsys, no_confirm):
+def test_verbose_prints(capsys, no_confirm):
     client = FakeClient([message(tool_calls=[tool_call('c1', 'read', {'args': ['a']})]),
                          message(content='done')])
-    agent = Agent(client, FakeProvider(), AgentOptions(debug=True), confirm=no_confirm)
+    agent = Agent(client, FakeProvider(), AgentOptions(verbose=True), confirm=no_confirm)
     assert agent.run('system', 'request') == 0
     out = capsys.readouterr().out
     assert out.count('printed all') == 2

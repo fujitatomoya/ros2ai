@@ -108,7 +108,7 @@ i believe that is exactly where AI comes to play. instead of paying the resource
 
 # Design
 
-- <span style="color:red;">***SIMPLE***</span>. one of the original motivation, it has to be simple as much as possible. That is said that it would be even better to remove all sub-commands, just `ros2 ai <whatever your request>` if that is possible.
+- <span style="color:red;">***SIMPLE***</span>. one of the original motivation, it has to be simple as much as possible. That is said that there is no sub-command at all, just `ros2 ai <whatever your request>`.
 
 <!---
 # Comment Here
@@ -124,9 +124,10 @@ i believe that is exactly where AI comes to play. instead of paying the resource
 
 ---
 
-- `status` command is to check if `ros2ai` is configured properly.
-- `query` command is to ask any questions related to ROS 2. This is a single-shot completion, no session is supported currently. LLM system role attribution is set to default, but can be reconfigurable.
-- `exec` command is that AI executes the appropriate command based on the requests. LLM system role attribution is set to default, but can be reconfigurable.
+- `ros2 ai "<request>"` is the only entry point, the request can be any question related to ROS 2, or the operation against the ROS 2 system. LLM system role attribution is set to default, but can be reconfigurable.
+- AI decides by itself whether to answer the question, or to inspect and operate the ROS 2 system via [Function Calling](https://platform.openai.com/docs/guides/function-calling) with [ros2cli](https://github.com/ros2/ros2cli) tools. The commands that change the system require the user confirmation.
+- `ros2 ai --status` is to check if `ros2ai` is configured properly.
+- This is a single-shot completion, no session is supported currently.
 
 ---
 
@@ -184,17 +185,6 @@ currently, `ros2ai` only supports single-shot completion API, that means we can 
 
 It would be really helpful to iterate via audio system instead of typing anymore.
 So the user can just talk to the `ros2ai` agent and then `ros2ai` answers any questions and executes the corresponding operations as user wants to do.
-
-<!---
-# Comment Here
---->
-
----
-
-# Function Calling
-
-for more user friendly experience, user should not be aware of `ros2ai` sub-command at all such as query, execute. this is actually against the design policy for `ros2ai`.
-we could take advantage of [Function Calling](https://platform.openai.com/docs/guides/function-calling) to conceal these sub-commands, and internally categorize the request based on the user input.
 
 <!---
 # Comment Here

@@ -151,6 +151,9 @@ User need to choose which of them is used by `ros2ai` as following configuration
 
 #### Basics
 
+`ros2 ai` has no sub-command, just pass your question or request: `ros2 ai "<request>"`.
+The ROS 2 assistant decides by itself whether to answer the question or to operate the ROS 2 system on your behalf.
+
 - configuration
 
   ```bash
@@ -170,21 +173,23 @@ User need to choose which of them is used by `ros2ai` as following configuration
   export ROS2AI_ENDPOINT=http://127.0.0.1:11434/v1
   ```
 
-- `status` to check API key and configuration are valid.
+- `--status` (`-s`) to check API key and configuration are valid, `--list-models` (`-l`) prints the available models.
 
   ```bash
-  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai status -v
-  ----- api_model: gpt-4
+  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai -s -v
+  ----- api_model: gpt-5
   ----- api_endpoint: https://api.openai.com/v1
   ----- api_token: None
+  ----- api_temperature: 1.0
   As an artificial intelligence, I do not have a physical presence, so I can't be "in service" in the traditional sense. But I am available to assist you 24/7.
   [SUCCESS] Valid API key.
+  [SUCCESS] Retrieved list of models.
   ```
 
-- `query` to ask any questions to ROS 2 assistant.
+- ask any questions to ROS 2 assistant.
 
   ```bash
-  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai query "Tell me how to check the available topics?"
+  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai "Tell me how to check the available topics?"
   To check the available topics in ROS 2, you can use the following command in the terminal:
 
   ---
@@ -194,7 +199,7 @@ User need to choose which of them is used by `ros2ai` as following configuration
   After you enter this command, a list of all currently active topics in your ROS2 system will be displayed. This list includes all topics that nodes in your system are currently publishing to or subscribing from.
   ```
 
-- `exec` that ROS 2 assistant operates the ROS 2 system based on your request.
+- request ROS 2 assistant to operate the ROS 2 system.
 
   The assistant calls the [ros2cli](https://github.com/ros2/ros2cli) tools (`ros2 node`, `ros2 topic`, `ros2 service`, `ros2 param` and so on) via [tool calling](https://platform.openai.com/docs/guides/function-calling), observes the result and iterates until the request is done.
   Every command is printed before it is executed, and executed without shell, so that the model can only run `ros2` commands.
@@ -206,7 +211,7 @@ User need to choose which of them is used by `ros2ai` as following configuration
   | long-running | `run`, `launch`, `bag record` ...                               | asks for confirmation, runs in foreground until `Ctrl-C` |
 
   ```bash
-  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai exec "give me all topics"
+  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai "give me all topics"
   [ros2ai]: ros2 topic list -t
   /chatter [std_msgs/msg/String]
   /parameter_events [rcl_interfaces/msg/ParameterEvent]
@@ -218,7 +223,7 @@ User need to choose which of them is used by `ros2ai` as following configuration
   | `/parameter_events` | `rcl_interfaces/msg/ParameterEvent` |
   | `/rosout` | `rcl_interfaces/msg/Log` |
   That's 3 topics in total. Let me know if you'd like to inspect any of them further (e.g., see publishers/subscribers, echo a message, or publish to one).
-  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai exec "publish hello message on /chatter topic" -y
+  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai "publish hello message on /chatter topic" -y
   [ros2ai]: ros2 topic info -v /chatter
   Type: std_msgs/msg/String
   ...
@@ -231,14 +236,14 @@ User need to choose which of them is used by `ros2ai` as following configuration
 
   Without `-y`, the assistant asks `Execute 'ros2 topic pub --once -w 0 /chatter std_msgs/msg/String '{data: hello}''? [y/N]:` before publishing.
 
-  `--dry-run` prints the commands that change the system as candidates instead of executing them (read-only commands are still executed, so that the assistant can decide the command), `-d` prints the tool calls and results.
+  `--dry-run` prints the commands that change the system as candidates instead of executing them (read-only commands are still executed, so that the assistant can decide the command), `-v` prints the system role, the raw completions, the tool calls and results.
 
   Composite tools answer a diagnostic question with several `ros2` commands in a single tool call, instead of one completion per command.
   `get_node_status` combines `node info`, `lifecycle get`, `param list` and `topic hz` of the published topics, `get_topic_status` combines `topic info -v`, `topic hz` and `topic echo --once`.
   The commands are printed indented under the tool call, and the result is a YAML summary including the warnings found (lifecycle state not active, idle publisher, incompatible QoS and so on).
 
   ```bash
-  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai exec "is /lc_talker healthy?"
+  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai "is /lc_talker healthy?"
   [ros2ai]: get_node_status(node=/lc_talker)
   [ros2ai]:   ros2 node info /lc_talker
   [ros2ai]:   ros2 lifecycle get /lc_talker
@@ -262,7 +267,7 @@ User need to choose which of them is used by `ros2ai` as following configuration
   No — `/lc_talker` is not healthy. It's a **lifecycle node stuck in the `unconfigured` state**:
   ...
   So the node exists and is alive on the graph, but it has never been transitioned to an active state. If you'd like, I can transition it to `configured` → `active` via the lifecycle services (`/lc_talker/change_state`), or list the lifecycle service details first.
-  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai exec "what is the status of the /chatter topic?"
+  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai "what is the status of the /chatter topic?"
   [ros2ai]: get_topic_status(topic=/chatter)
   [ros2ai]:   ros2 topic info -v /chatter
   [ros2ai]:   ros2 topic hz /chatter
@@ -287,14 +292,14 @@ User need to choose which of them is used by `ros2ai` as following configuration
   ```
 
   > [!NOTE]
-  > If the endpoint or the model does not support tool calling, `exec` falls back to asking the model for a single `ros2` command line, which is executed with the same policy.
+  > If the endpoint or the model does not support tool calling, the assistant answers the request without tools, nothing is executed.
 
 #### Multiple Language
 
 - Japanese (could be any language ❓)
 
   ```bash
-  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai query "パラメータのリスト取得方法を教えて"
+  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai "パラメータのリスト取得方法を教えて"
   ROS 2のパラメータリストを取得するには、コマンドラインインターフェース(CLI)を使います。具体的には、次のコマンドを使用します：
 
   ---code

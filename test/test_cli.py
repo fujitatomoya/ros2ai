@@ -16,102 +16,106 @@ import argparse
 import sys
 
 import pytest
-from ros2ai.verb.exec import ExecVerb
-from ros2ai.verb.query import QueryVerb
-from ros2ai.verb.status import StatusVerb
+from ros2ai.command.ai import AiCommand
 
 
-def parse(verb, argv):
+def parse(argv):
     parser = argparse.ArgumentParser(prog='ros2 ai')
-    verb.add_arguments(parser, 'ros2 ai')
+    AiCommand().add_arguments(parser, 'ros2 ai')
     return parser.parse_args(argv)
 
 
-GLOBAL_DEFAULTS = {'model': None, 'url': None, 'token': None}
+def test_defaults():
+    args = parse([])
+    assert args.request == []
+    assert args.model is None
+    assert args.url is None
+    assert args.token is None
+    assert args.role is None
+    assert args.verbose is False
+    assert args.yes is False
+    assert args.dry_run is False
+    assert args.status is False
+    assert args.list_models is False
 
 
-def assert_global_defaults(args):
-    for key, value in GLOBAL_DEFAULTS.items():
-        assert getattr(args, key) == value
+def test_request():
+    args = parse(['give', 'me', 'all', 'topics'])
+    assert args.request == ['give', 'me', 'all', 'topics']
+    args = parse(['give me all topics'])
+    assert args.request == ['give me all topics']
+    # options can be placed before or after the request
+    args = parse(['-y', 'publish hello', '--dry-run'])
+    assert args.request == ['publish hello']
+    assert args.yes is True
+    assert args.dry_run is True
 
 
-@pytest.mark.parametrize('verb', [StatusVerb(), QueryVerb(), ExecVerb()])
-def test_global_arguments(verb):
-    positional = [] if isinstance(verb, StatusVerb) else ['hello']
-    args = parse(verb, positional + ['-m', 'gpt-x', '-u', 'http://127.0.0.1:11434/v1', '-t', '12'])
+def test_global_arguments():
+    args = parse(['hello', '-m', 'gpt-x', '-u', 'http://127.0.0.1:11434/v1', '-t', '12'])
     assert args.model == 'gpt-x'
     assert args.url == 'http://127.0.0.1:11434/v1'
     assert args.token == 12
-    args = parse(verb, positional + ['--model', 'gpt-y', '--url', 'http://h/v1', '--token', '3'])
+    args = parse(['hello', '--model', 'gpt-y', '--url', 'http://h/v1', '--token', '3'])
     assert args.model == 'gpt-y'
     assert args.url == 'http://h/v1'
     assert args.token == 3
 
 
-def test_status_arguments():
-    args = parse(StatusVerb(), [])
-    assert_global_defaults(args)
-    assert args.verbose is False
-    assert args.list is False
-    args = parse(StatusVerb(), ['-vl'])
-    assert args.verbose is True
-    assert args.list is True
-    args = parse(StatusVerb(), ['--verbose', '--list'])
-    assert args.verbose is True
-    assert args.list is True
-
-
-def test_query_arguments():
-    args = parse(QueryVerb(), ['what', 'is', 'ros'])
-    assert_global_defaults(args)
-    assert args.questions == ['what', 'is', 'ros']
-    assert args.nostream is False
-    assert args.verbose is False
-    assert args.role is None
-    args = parse(QueryVerb(), ['say hello', '-nv', '-r', 'custom role'])
-    assert args.questions == ['say hello']
-    assert args.nostream is True
-    assert args.verbose is True
-    assert args.role == 'custom role'
-    args = parse(QueryVerb(), ['q', '--nostream', '--verbose', '--role', 'r'])
-    assert args.nostream is True
-    assert args.verbose is True
-    assert args.role == 'r'
-    with pytest.raises(SystemExit):
-        parse(QueryVerb(), [])
-
-
-def test_exec_arguments():
-    args = parse(ExecVerb(), ['give', 'me', 'all', 'topics'])
-    assert_global_defaults(args)
-    assert args.request == ['give', 'me', 'all', 'topics']
-    assert args.debug is False
-    assert args.dry_run is False
-    assert args.yes is False
-    assert args.role is None
-    args = parse(ExecVerb(), ['list nodes', '-d', '--dry-run', '-y', '-r', 'custom role'])
+def test_request_arguments():
+    args = parse(['list nodes', '-v', '--dry-run', '-y', '-r', 'custom role'])
     assert args.request == ['list nodes']
-    assert args.debug is True
+    assert args.verbose is True
     assert args.dry_run is True
     assert args.yes is True
     assert args.role == 'custom role'
-    args = parse(ExecVerb(), ['list nodes', '--debug', '--yes', '--role', 'r'])
-    assert args.debug is True
+    args = parse(['list nodes', '--verbose', '--yes', '--role', 'r'])
+    assert args.verbose is True
     assert args.yes is True
     assert args.role == 'r'
+
+
+def test_status_arguments():
+    args = parse(['-s'])
+    assert args.request == []
+    assert args.status is True
+    assert args.list_models is False
+    args = parse(['-vl'])
+    assert args.verbose is True
+    assert args.list_models is True
+    args = parse(['--status', '--list-models'])
+    assert args.status is True
+    assert args.list_models is True
+
+
+def test_unknown_option():
     with pytest.raises(SystemExit):
-        parse(ExecVerb(), [])
+        parse(['hello', '--nostream'])
 
 
 def test_ros2_ai_help(capsys, monkeypatch):
     from ros2cli.cli import main
-    # verb sub-parsers are added on demand based on sys.argv
     monkeypatch.setattr(sys, 'argv', ['ros2', 'ai', '-h'])
     with pytest.raises(SystemExit) as exit_info:
         main(argv=['ai', '-h'])
     assert exit_info.value.code == 0
     out = capsys.readouterr().out
-    for verb in ('status', 'query', 'exec'):
-        assert verb in out
-    for option in ('-m', '--model', '-u', '--url', '-t', '--token'):
+    assert '<request>' in out
+    for option in (
+            '-m', '--model', '-u', '--url', '-t', '--token', '-r', '--role', '-v', '--verbose',
+            '-y', '--yes', '--dry-run', '-s', '--status', '-l', '--list-models'):
         assert option in out
+    assert 'examples:' in out
+    # no sub-commands
+    assert 'Commands:' not in out
+    assert 'query' not in out
+
+
+def test_ros2_ai_without_request_prints_help(capsys, monkeypatch):
+    from ros2cli.cli import main
+    monkeypatch.setattr(sys, 'argv', ['ros2', 'ai'])
+    assert main(argv=['ai']) == 0
+    out = capsys.readouterr().out
+    assert out.startswith('usage: ')
+    assert '<request>' in out
+    assert 'examples:' in out
