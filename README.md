@@ -236,7 +236,8 @@ The ROS 2 assistant decides by itself whether to answer the question or to opera
 
   Without `-y`, the assistant asks `Execute 'ros2 topic pub --once -w 0 /chatter std_msgs/msg/String '{data: hello}''? [y/N]:` before publishing.
 
-  `--dry-run` prints the commands that change the system as candidates instead of executing them (read-only commands are still executed, so that the assistant can decide the command), `-v` prints the system role, the raw completions, the tool calls and results.
+  `--dry-run` prints the commands that change the system as candidates instead of executing them (read-only commands are still executed, so that the assistant can decide the command), `-v` prints the system role, the tool calls and results.
+  The answers are streamed as they arrive, `-n` disables the streaming (the raw completions are printed with `-nv`).
 
   Composite tools answer a diagnostic question with several `ros2` commands in a single tool call, instead of one completion per command.
   `get_node_status` combines `node info`, `lifecycle get`, `param list` and `topic hz` of the published topics, `get_topic_status` combines `topic info -v`, `topic hz` and `topic echo --once`.

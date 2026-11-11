@@ -90,7 +90,7 @@ def test_status_arguments():
 
 def test_unknown_option():
     with pytest.raises(SystemExit):
-        parse(['hello', '--nostream'])
+        parse(['hello', '--debug'])
 
 
 def test_ros2_ai_help(capsys, monkeypatch):
