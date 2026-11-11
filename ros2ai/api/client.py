@@ -27,6 +27,8 @@ class ChatCompletionParameters:
 
     messages: list = field(default_factory=list)
     stream: bool = True
+    # tool definitions in the OpenAI function calling format, no tools if None
+    tools: Optional[list] = None
 
 
 def chat_messages(system_role: str, user_content: str) -> list:
@@ -61,27 +63,40 @@ class ChatCompletionClient:
             default_headers=default_headers)
         self._completion = None
         self._stream = True
+        self._error = None
 
     def call(self, parameters: ChatCompletionParameters) -> bool:
         """
         Call the chat completion with the configured model.
 
-        :param parameters: messages and streaming mode of the completion.
+        :param parameters: messages, streaming mode and tools of the completion.
         :return: True if the API call succeeded, False otherwise.
         """
         self._stream = parameters.stream
         self._completion = None
+        self._error = None
+        kwargs = {}
+        if parameters.tools:
+            # `tool_choice` is intentionally left to the default (auto), forcing the tool use
+            # is not supported by every OpenAI compatible endpoint.
+            kwargs['tools'] = parameters.tools
         try:
             self._completion = self._client.chat.completions.create(
                 model=self._config.get_value('api_model'),
                 messages=parameters.messages,
                 stream=parameters.stream,
                 temperature=self._config.get_value('api_temperature'),
-                max_tokens=self._config.get_value('api_token'))
+                max_tokens=self._config.get_value('api_token'),
+                **kwargs)
         except Exception as e:
+            self._error = e
             print('Failed to call LLM API: ' + str(e))
             return False
         return True
+
+    def get_error(self) -> Optional[Exception]:
+        """Get the exception of the last failed call, None if the last call succeeded."""
+        return self._error
 
     def _choice(self):
         return self._completion.choices[0]
@@ -112,6 +127,19 @@ class ChatCompletionClient:
         if self._choice().finish_reason != 'stop':
             return None
         return self._choice().message.content
+
+    def get_message(self):
+        """
+        Get the completion message including the tool calls.
+
+        :return: message of the completion, None if streaming, failed or not finished.
+        """
+        if self._completion is None or self._stream:
+            return None
+        choice = self._choice()
+        if choice.finish_reason != 'stop' and not getattr(choice.message, 'tool_calls', None):
+            return None
+        return choice.message
 
     def print_all(self):
         """Print the raw completion, only available without streaming."""

@@ -43,6 +43,9 @@ command_list=(
     "ros2 ai exec -m $VERIFY_MODEL -u $VERIFY_ENDPOINT \"give me all topics\""
     "ros2 ai exec \"give me all topics\" --dry-run"
     "ros2 ai exec \"give me all topics\" -d"
+    "ros2 ai exec \"give me detailed info for topic /rosout\""
+    "ros2 ai exec \"publish hello message on /chatter topic\" --dry-run"
+    "ros2 ai exec \"publish hello message on /chatter topic\" -y"
 )
 
 ########################
