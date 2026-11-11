@@ -194,20 +194,47 @@ User need to choose which of them is used by `ros2ai` as following configuration
   After you enter this command, a list of all currently active topics in your ROS2 system will be displayed. This list includes all topics that nodes in your system are currently publishing to or subscribing from.
   ```
 
-- `exec` that ROS 2 assistant can execute the appropriate command based on your request.
+- `exec` that ROS 2 assistant operates the ROS 2 system based on your request.
+
+  The assistant calls the [ros2cli](https://github.com/ros2/ros2cli) tools (`ros2 node`, `ros2 topic`, `ros2 service`, `ros2 param` and so on) via [tool calling](https://platform.openai.com/docs/guides/function-calling), observes the result and iterates until the request is done.
+  Every command is printed before it is executed, and executed without shell, so that the model can only run `ros2` commands.
+
+  | Tool policy  | Commands                                                        | Behavior |
+  | :----------- | :-------------------------------------------------------------- | :------- |
+  | read-only    | `node`, `topic list/info/echo`, `service list`, `param get` ... | executed automatically |
+  | mutating     | `topic pub`, `service call`, `param set`, `action send_goal` ...| asks for confirmation, `-y` / `--yes` skips it |
+  | long-running | `run`, `launch`, `bag record` ...                               | asks for confirmation, runs in foreground until `Ctrl-C` |
 
   ```bash
-  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai exec "give me all nodes"
-  /talker
-  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai exec "what topics available"
-  /chatter
-  /parameter_events
-  /rosout
-  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai exec "give me detailed info for topic /chatter"
+  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai exec "give me all topics"
+  [ros2ai]: ros2 topic list -t
+  /chatter [std_msgs/msg/String]
+  /parameter_events [rcl_interfaces/msg/ParameterEvent]
+  /rosout [rcl_interfaces/msg/Log]
+  Here are all the available topics in your ROS 2 system:
+  | Topic | Message Type |
+  |-------|-------------|
+  | `/chatter` | `std_msgs/msg/String` |
+  | `/parameter_events` | `rcl_interfaces/msg/ParameterEvent` |
+  | `/rosout` | `rcl_interfaces/msg/Log` |
+  That's 3 topics in total. Let me know if you'd like to inspect any of them further (e.g., see publishers/subscribers, echo a message, or publish to one).
+  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai exec "publish hello message on /chatter topic" -y
+  [ros2ai]: ros2 topic info -v /chatter
   Type: std_msgs/msg/String
-  Publisher count: 1
+  ...
   Subscription count: 0
+  [ros2ai]: ros2 topic pub --once -w 0 /chatter std_msgs/msg/String '{data: hello}'
+  publisher: beginning loop
+  publishing #1: std_msgs.msg.String(data='hello')
+  Done — I published the message `hello` on `/chatter` (`std_msgs/msg/String`). Note: the topic currently shows 0 subscribers, so no node received it. Let me know if you want me to start a listener (e.g., `demo_nodes_cpp`'s `listener`) first.
   ```
+
+  Without `-y`, the assistant asks `Execute 'ros2 topic pub --once -w 0 /chatter std_msgs/msg/String '{data: hello}''? [y/N]:` before publishing.
+
+  `--dry-run` prints the commands that change the system as candidates instead of executing them (read-only commands are still executed, so that the assistant can decide the command), `-d` prints the tool calls and results.
+
+  > [!NOTE]
+  > If the endpoint or the model does not support tool calling, `exec` falls back to asking the model for a single `ros2` command line, which is executed with the same policy.
 
 #### Multiple Language
 

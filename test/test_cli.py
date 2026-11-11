@@ -87,14 +87,17 @@ def test_exec_arguments():
     assert args.request == ['give', 'me', 'all', 'topics']
     assert args.debug is False
     assert args.dry_run is False
+    assert args.yes is False
     assert args.role is None
-    args = parse(ExecVerb(), ['list nodes', '-d', '--dry-run', '-r', 'custom role'])
+    args = parse(ExecVerb(), ['list nodes', '-d', '--dry-run', '-y', '-r', 'custom role'])
     assert args.request == ['list nodes']
     assert args.debug is True
     assert args.dry_run is True
+    assert args.yes is True
     assert args.role == 'custom role'
-    args = parse(ExecVerb(), ['list nodes', '--debug', '--role', 'r'])
+    args = parse(ExecVerb(), ['list nodes', '--debug', '--yes', '--role', 'r'])
     assert args.debug is True
+    assert args.yes is True
     assert args.role == 'r'
     with pytest.raises(SystemExit):
         parse(ExecVerb(), [])

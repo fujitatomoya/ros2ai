@@ -55,9 +55,28 @@ ROLE_SYSTEM_QUERY_DEFAULT = \
     'You are a Robot Operating System version 2 (as known as ROS2) {} distribution ' \
     'professional assistant who can provide helpful answers against any questions.'
 ROLE_SYSTEM_EXEC_DEFAULT = \
+    'You are a Robot Operating System 2 (as known as ROS 2) {} distribution operator. ' \
+    'Use the provided tools to inspect and operate the ROS 2 system on behalf of the user. ' \
+    'Inspect the system with read-only tools before changing anything, ' \
+    'use exactly the names reported by the tools, ' \
+    'and finish with a brief summary of the result.'
+# Used when the endpoint or model does not support tool calling (function calling),
+# the model is asked for a single `ros2` command line instead.
+ROLE_SYSTEM_EXEC_COMMAND = \
     'You are a Robot Operating System 2 (as known as ROS 2) {} distribution ' \
     'command line executor, provides single executable command string only ' \
     'without any comments or code blocks or backticks.'
+
+# Tool calling (function calling) limits for the `exec` agent loop.
+# Maximum number of chat completions (steps) for a single request.
+ROS2AI_MAX_STEPS = 10
+# Maximum number of characters of a tool output returned to the model, the head and the tail
+# are kept. This is kept small so that the conversation fits into the small context window
+# of the local models (e.g Ollama default), the whole output is always printed to the user.
+ROS2AI_TOOL_OUTPUT_LIMIT = 4000
+# Timeout in seconds for a tool command, and for receiving a single message.
+ROS2AI_TOOL_TIMEOUT_SEC = 30.0
+ROS2AI_TOOL_ECHO_TIMEOUT_SEC = 10.0
 
 # Temperature controls the consistency for behavior.
 # (range 0.0 - 2.0 for OpenAI, 0.0 - 1.0 for Anthropic)
