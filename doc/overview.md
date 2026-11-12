@@ -141,6 +141,14 @@ i believe that is exactly where AI comes to play. instead of paying the resource
 
 ---
 
+# Documentation Grounding
+
+- The answers about ROS 2 concepts, tutorials, tools and APIs are grounded on the official [ROS 2 documentation](https://docs.ros.org/en/rolling/) of the running distribution (`ROS_DISTRO`), and cite the page.
+- `search_ros2_docs` and `read_ros2_docs` look up the [documentation sources](https://github.com/ros2/ros2_documentation) cached locally (`~/.cache/ros2ai/docs/<distro>`), downloaded once per distribution and refreshed weekly, offline afterwards.
+- Multi-language support stays on the mainline documentation, the model translates on demand.
+
+---
+
 # Future Plans
 
 <!---

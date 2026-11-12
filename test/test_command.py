@@ -541,6 +541,43 @@ def test_legacy_environment_variables(fake_openai, monkeypatch):
     assert client.create_calls[0]['model'] == 'gemma4'
 
 
+def test_docs_tools(fake_openai, monkeypatch, tmp_path, capsys):
+    from test_docs import FakeDownload, make_archive, QOS_PAGE
+    from ros2ai.api import docs
+    page = 'Concepts/Intermediate/About-Quality-of-Service-Settings'
+    url = f'https://docs.ros.org/en/rolling/{page}.html'
+    monkeypatch.setenv(constants.ROS2AI_DOCS_CACHE_ENV_VAR, str(tmp_path))
+    monkeypatch.setattr(docs, 'urlopen', FakeDownload(make_archive({page: QOS_PAGE})))
+    fake_openai.responses = [
+        [('search_ros2_docs', {'query': 'quality of service reliability'})],
+        [('read_ros2_docs', {'page': page})],
+        f'Reliable delivery guarantees the samples, see {url}',
+    ]
+    assert run_command(['what is the reliable QoS?']) == 0
+    assert FakeRos2.calls == []
+    out = capsys.readouterr().out
+    assert out == (
+        "[ros2ai]: search_ros2_docs(query='quality of service reliability')\n"
+        f'[ros2ai]:   downloaded the ROS 2 rolling documentation to {tmp_path}/rolling\n'
+        f'[ros2ai]:   {url}\n'
+        f'[ros2ai]: read_ros2_docs(page={page})\n'
+        f'[ros2ai]:   {url}\n'
+        f'Reliable delivery guarantees the samples, see {url}\n')
+    calls = fake_openai.instances[0].create_calls
+    assert calls[0]['messages'][0]['content'] == \
+        constants.ROLE_SYSTEM_DEFAULT.format('rolling')
+    assert 'rolling documentation' in calls[0]['messages'][0]['content']
+    names = {tool['function']['name'] for tool in calls[0]['tools']}
+    assert {'search_ros2_docs', 'read_ros2_docs'} <= names
+    search_message = calls[1]['messages'][3]
+    assert search_message['role'] == 'tool'
+    assert search_message['content'].startswith('query: quality of service reliability\n')
+    assert f'  url: {url}\n' in search_message['content']
+    read_message = calls[2]['messages'][5]
+    assert read_message['content'].startswith(f'page: {page}\n')
+    assert 'Quality of Service settings in ROS 2 Rolling' in read_message['content']
+
+
 def test_exec_composite_tool(fake_openai, monkeypatch, capsys):
     fake_openai.responses = [
         [('get_node_status', {'node': '/talker', 'window': 1})],

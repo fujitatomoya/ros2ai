@@ -307,6 +307,26 @@ def test_output_truncated_for_model_but_printed(capsys, no_confirm):
     assert 'x' * 100 in capsys.readouterr().out
 
 
+def test_output_not_printable(capsys, no_confirm):
+    class QuietProvider(FakeProvider):
+
+        def run(self, command):
+            return ToolResult('only for the model', 0, printable=False)
+
+    client = FakeClient([message(tool_calls=[tool_call('c1', 'read', {})]), message(content='')])
+    agent = Agent(client, QuietProvider(), options(), confirm=no_confirm)
+    assert agent.run('system', 'request') == 0
+    assert client.calls[1].messages[3]['content'] == 'only for the model'
+    assert 'only for the model' not in capsys.readouterr().out
+    # printed as the tool result with the verbose option
+    client = FakeClient([message(tool_calls=[tool_call('c1', 'read', {})]), message(content='')])
+    agent = Agent(client, QuietProvider(), options(verbose=True), confirm=no_confirm)
+    assert agent.run('system', 'request') == 0
+    out = capsys.readouterr().out
+    assert out.count('only for the model') == 1
+    assert 'Tool result: only for the model\n' in out
+
+
 def test_empty_output(no_confirm):
     class EmptyProvider(FakeProvider):
 
