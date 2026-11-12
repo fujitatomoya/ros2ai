@@ -88,6 +88,7 @@ class FakeOpenAI:
     error = None
     model_ids = ['model-a', 'model-b']
     instances = []
+    session_file = None
     # scripted responses consumed in order before falling back to `content`:
     # str for the content, list of (name, arguments) for tool calls, Exception to raise
     responses = []
@@ -128,7 +129,7 @@ class FakeOpenAI:
 
 
 @pytest.fixture
-def fake_openai(monkeypatch):
+def fake_openai(monkeypatch, tmp_path):
     FakeOpenAI.content = 'fake answer'
     FakeOpenAI.finish_reason = 'stop'
     FakeOpenAI.error = None
@@ -171,6 +172,7 @@ def fake_openai(monkeypatch):
         constants.ROS2AI_ENDPOINT_ENV_VAR,
         constants.ROS2AI_TEMPERATURE_ENV_VAR,
         constants.ROS2AI_ROLE_SYSTEM_ENV_VAR,
+        constants.ROS2AI_CONTEXT_LIMIT_ENV_VAR,
         constants.ROS_OPENAI_API_KEY_ENV_VAR,
         constants.ROS_OPENAI_MODEL_NAME_ENV_VAR,
         constants.ROS_OPENAI_ENDPOINT_ENV_VAR,
@@ -180,6 +182,9 @@ def fake_openai(monkeypatch):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv(constants.ROS2AI_API_KEY_ENV_VAR, 'sk-test')
     monkeypatch.setenv('ROS_DISTRO', 'rolling')
+    # the session file of the user is never touched
+    FakeOpenAI.session_file = tmp_path / 'state' / 'session.json'
+    monkeypatch.setenv(constants.ROS2AI_SESSION_FILE_ENV_VAR, str(FakeOpenAI.session_file))
     return FakeOpenAI
 
 
@@ -636,3 +641,202 @@ def test_exec_composite_tool(fake_openai, monkeypatch, capsys):
     assert tool_message['role'] == 'tool'
     assert tool_message['content'].startswith('node: /talker\nfound: true\n')
     assert 'parameters:\n- use_sim_time\n' in tool_message['content']
+
+
+def session_turns():
+    """Read the turns of the session file written by the command."""
+    return json.loads(FakeOpenAI.session_file.read_text())['turns']
+
+
+def test_request_saves_the_session(fake_openai):
+    assert run_command(['what', 'is ros']) == 0
+    data = json.loads(fake_openai.session_file.read_text())
+    assert data['model'] == constants.ROS2AI_DEFAULT_MODEL
+    assert data['endpoint'] == constants.ROS2AI_DEFAULT_ENDPOINT
+    assert data['turns'] == [[
+        {'role': 'user', 'content': 'what is ros'},
+        {'role': 'assistant', 'content': 'fake answer!'},
+    ]]
+
+
+def test_continue_session(fake_openai, capsys):
+    fake_openai.responses = [
+        [('ros2_topic_list', {})], 'Yes, /chatter is available.',
+        [('ros2_topic_echo', {'topic': '/chatter'})], 'Here is a message of /chatter.',
+    ]
+    FakeRos2.stdout = '/chatter [std_msgs/msg/String]\n'
+    assert run_command(['do we have', '/chatter topic?']) == 0
+    assert run_command(['-c', 'subscribe it']) == 0
+    assert FakeRos2.calls == [
+        ['ros2', 'topic', 'list', '-t'], ['ros2', 'topic', 'echo', '--once', '/chatter']]
+    # the second command sends the whole first turn before the new request
+    first = fake_openai.instances[1].create_calls[0]['messages']
+    assert first[:2] == [
+        {'role': 'system', 'content': constants.ROLE_SYSTEM_DEFAULT.format('rolling')},
+        {'role': 'user', 'content': 'do we have /chatter topic?'},
+    ]
+    assert first[2]['tool_calls'][0]['function']['name'] == 'ros2_topic_list'
+    assert first[3] == {
+        'role': 'tool', 'tool_call_id': 'call_0', 'content': '/chatter [std_msgs/msg/String]'}
+    assert first[4:] == [
+        {'role': 'assistant', 'content': 'Yes, /chatter is available.'},
+        {'role': 'user', 'content': 'subscribe it'},
+    ]
+    assert len(session_turns()) == 2
+    assert 'no previous session' not in capsys.readouterr().out
+
+
+def test_request_without_continue_starts_a_new_session(fake_openai):
+    assert run_command(['first']) == 0
+    assert run_command(['second']) == 0
+    messages = fake_openai.instances[1].create_calls[0]['messages']
+    assert [m['content'] for m in messages[1:]] == ['second']
+    assert len(session_turns()) == 1
+
+
+def test_continue_without_previous_session(fake_openai, capsys):
+    assert run_command(['-c', 'hello']) == 0
+    out = capsys.readouterr().out
+    assert out.startswith('[ros2ai]: no previous session to continue (')
+    assert out.endswith('fake answer!\n')
+    assert len(session_turns()) == 1
+
+
+def test_continue_invalid_session_file(fake_openai, capsys):
+    fake_openai.session_file.parent.mkdir(parents=True)
+    fake_openai.session_file.write_text('not json')
+    assert run_command(['-c', 'hello']) == 0
+    out = capsys.readouterr().out
+    assert '[ros2ai]: failed to read the session file' in out
+    assert len(session_turns()) == 1
+
+
+def test_continue_verbose(fake_openai, capsys):
+    assert run_command(['first']) == 0
+    assert run_command(['-cv', 'second']) == 0
+    out = capsys.readouterr().out
+    assert '[ros2ai]: continuing the session of 1 turns, model: gpt-5, updated: ' in out
+
+
+def test_failed_request_is_not_saved(fake_openai):
+    assert run_command(['first']) == 0
+    fake_openai.error = RuntimeError('boom')
+    assert run_command(['-c', 'second']) == 1
+    assert len(session_turns()) == 1
+
+
+def test_session_save_failure_is_reported(fake_openai, monkeypatch, capsys):
+    monkeypatch.setenv(constants.ROS2AI_SESSION_FILE_ENV_VAR, '/dev/null/session.json')
+    assert run_command(['hello']) == 0
+    out = capsys.readouterr().out
+    assert 'fake answer!\n' in out
+    assert '[ros2ai]: failed to save the session to /dev/null/session.json' in out
+
+
+def test_context_limit_env(fake_openai, monkeypatch, capsys):
+    # the system role is counted (about 175 tokens), each turn of 100 characters is about 45
+    monkeypatch.setenv(constants.ROS2AI_CONTEXT_LIMIT_ENV_VAR, '240')
+    assert run_command(['x' * 100]) == 0
+    assert len(session_turns()) == 1
+    assert run_command(['-c', 'y' * 100]) == 0
+    # the first turn does not fit with the second one and is dropped
+    messages = fake_openai.instances[1].create_calls[0]['messages']
+    assert [m['content'] for m in messages[1:]] == ['y' * 100]
+    assert len(session_turns()) == 1
+    monkeypatch.setenv(constants.ROS2AI_CONTEXT_LIMIT_ENV_VAR, 'many')
+    assert run_command(['hello']) == 0
+    assert 'Invalid ROS2AI_CONTEXT_LIMIT: many, use default' in capsys.readouterr().out
+
+
+def test_context_exceeded_retry(fake_openai, capsys):
+    assert run_command(['first']) == 0
+    fake_openai.responses = [RuntimeError('context_length_exceeded'), 'short answer']
+    assert run_command(['-c', 'second']) == 0
+    out = capsys.readouterr().out
+    assert '[ros2ai]: the context length is exceeded, the oldest turn is dropped.' in out
+    assert out.endswith('short answer\n')
+    calls = fake_openai.instances[1].create_calls
+    assert len(calls) == 2
+    assert [m['content'] for m in calls[1]['messages'][1:]] == ['second']
+    assert len(session_turns()) == 1
+
+
+@pytest.fixture
+def fake_input(monkeypatch):
+    """Feed the interactive session with scripted lines, EOF at the end."""
+    lines = []
+
+    def read_line(prompt):
+        print(prompt, end='')
+        if not lines:
+            raise EOFError()
+        return lines.pop(0)
+    monkeypatch.setattr('builtins.input', read_line)
+    monkeypatch.setattr('sys.stdin', SimpleNamespace(isatty=lambda: False))
+    return lines
+
+
+def test_interactive_session(fake_openai, fake_input, capsys):
+    fake_input.extend(['do we have /chatter?', 'subscribe it', 'exit'])
+    fake_openai.responses = ['yes', 'done']
+    assert run_command([]) == 0
+    out = capsys.readouterr().out
+    assert out == (
+        f'ros2ai interactive session (model: {constants.ROS2AI_DEFAULT_MODEL}, '
+        f'endpoint: {constants.ROS2AI_DEFAULT_ENDPOINT})\n'
+        'Type /help for the commands, exit or Ctrl-D to end the session.\n'
+        'ros2ai> yes\n'
+        'ros2ai> done\n'
+        'ros2ai> ')
+    calls = fake_openai.instances[0].create_calls
+    assert len(calls) == 2
+    assert [m['content'] for m in calls[1]['messages'][1:]] == [
+        'do we have /chatter?', 'yes', 'subscribe it']
+    assert len(session_turns()) == 2
+
+
+def test_interactive_session_clear_and_eof(fake_openai, fake_input, capsys):
+    fake_input.extend(['first', '/clear', 'second'])
+    assert run_command([]) == 0
+    calls = fake_openai.instances[0].create_calls
+    assert [m['content'] for m in calls[1]['messages'][1:]] == ['second']
+    out = capsys.readouterr().out
+    assert 'The context of the session is cleared.' in out
+    assert out.endswith('ros2ai> \n')
+
+
+def test_interactive_session_clear_saves_the_session(fake_openai, fake_input):
+    fake_input.extend(['first', '/clear', 'exit'])
+    assert run_command([]) == 0
+    assert session_turns() == []
+
+
+def test_interactive_session_continues(fake_openai, fake_input):
+    assert run_command(['first']) == 0
+    fake_input.extend(['second', 'exit'])
+    assert run_command(['-c']) == 0
+    calls = fake_openai.instances[1].create_calls
+    assert [m['content'] for m in calls[0]['messages'][1:]] == ['first', 'fake answer!', 'second']
+    assert len(session_turns()) == 2
+
+
+def test_interactive_session_long_running_tool(fake_openai, fake_input, monkeypatch, capsys):
+    executed = []
+    monkeypatch.setattr(
+        agent_module, 'run_executable', lambda *, command: executed.append(command) or 0)
+    fake_input.extend(['start the talker', 'what did you run?', 'exit'])
+    fake_openai.responses = [
+        [('ros2_run', {'package': 'demo_nodes_cpp', 'executable': 'talker'})],
+        'I ran the talker.',
+    ]
+    assert run_command(['-y']) == 0
+    assert executed == [['ros2', 'run', 'demo_nodes_cpp', 'talker']]
+    calls = fake_openai.instances[0].create_calls
+    assert len(calls) == 2
+    assert calls[1]['messages'][3] == {
+        'role': 'tool', 'tool_call_id': 'call_0',
+        'content': 'the command was executed in the foreground and exited with code 0.'}
+    assert capsys.readouterr().out.endswith(
+        'ros2ai> [ros2ai]: ros2 run demo_nodes_cpp talker\n'
+        'ros2ai> I ran the talker.\n'
+        'ros2ai> ')

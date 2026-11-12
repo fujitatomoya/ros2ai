@@ -127,7 +127,7 @@ i believe that is exactly where AI comes to play. instead of paying the resource
 - `ros2 ai "<request>"` is the only entry point, the request can be any question related to ROS 2, or the operation against the ROS 2 system. LLM system role attribution is set to default, but can be reconfigurable.
 - AI decides by itself whether to answer the question, or to inspect and operate the ROS 2 system via [Function Calling](https://platform.openai.com/docs/guides/function-calling) with [ros2cli](https://github.com/ros2/ros2cli) tools. The commands that change the system require the user confirmation.
 - `ros2 ai --status` is to check if `ros2ai` is configured properly.
-- This is a single-shot completion, no session is supported currently.
+- `ros2 ai` without a request starts the interactive session, and `ros2 ai --continue "<request>"` continues the previous session, so that the follow-up requests can refer to the previous ones.
 
 ---
 
@@ -181,10 +181,12 @@ i believe that is exactly where AI comes to play. instead of paying the resource
 
 # Context-Awareness
 
-currently, `ros2ai` only supports single-shot completion API, that means we can not rely on the previous questions or answers to make further requests. e.g) "Is /chatter topic available?", "Subscribe it!". This ***it*** should be recognized in the same context or session. If this command is issued, prompt should be initiated to keep the session alive until the entire session is closed by the user.
+`ros2ai` keeps the context of the session: "Is /chatter topic available?", "Subscribe it!". This ***it*** is recognized in the interactive session (`ros2 ai`) and with `ros2 ai --continue`. The messages of the previous requests are sent with every request, the oldest requests are dropped beyond the context limit.
+
+- Compaction of the oldest requests into a summary, instead of dropping them.
 
 <!---
-# probably with LangChain::ConversationBufferMemory
+# Comment Here
 --->
 
 ---

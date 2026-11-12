@@ -20,6 +20,8 @@ ROS2AI_MODEL_NAME_ENV_VAR = 'ROS2AI_MODEL_NAME'
 ROS2AI_ENDPOINT_ENV_VAR = 'ROS2AI_ENDPOINT'
 ROS2AI_TEMPERATURE_ENV_VAR = 'ROS2AI_TEMPERATURE'
 ROS2AI_ROLE_SYSTEM_ENV_VAR = 'ROS2AI_ROLE_SYSTEM'
+ROS2AI_CONTEXT_LIMIT_ENV_VAR = 'ROS2AI_CONTEXT_LIMIT'
+ROS2AI_SESSION_FILE_ENV_VAR = 'ROS2AI_SESSION_FILE'
 
 # Legacy environment variables, still honored when the ROS2AI_* variables are not set.
 ROS_OPENAI_API_KEY_ENV_VAR = 'OPENAI_API_KEY'
@@ -120,6 +122,19 @@ ROS_DISTRO_FULL_NAMES = {
     'lyrical': 'Lyrical Luth',
     'rolling': 'Rolling Ridley',
 }
+# Session keeps the context of the previous requests, the messages of the previous turns are
+# sent with every request. The oldest turns are dropped when the estimated number of tokens
+# of the messages exceeds this limit (the tool definitions are not counted), so that the
+# conversation fits into the context window of the model and the token consumption is bounded.
+# Local models may need a smaller limit depending on their context window (e.g Ollama `num_ctx`).
+ROS2AI_CONTEXT_LIMIT = 16000
+# The tokenizer differs per model, the number of tokens is estimated from the characters.
+ROS2AI_CHARS_PER_TOKEN = 4
+# The session is saved to `$XDG_STATE_HOME/ros2ai/<file>` (`~/.local/state` if not set),
+# `ROS2AI_SESSION_FILE` prevails. `--continue` continues the saved session.
+ROS2AI_SESSION_FILE_NAME = 'session.json'
+# Prompt of the interactive session.
+ROS2AI_PROMPT = 'ros2ai> '
 
 # Temperature controls the consistency for behavior.
 # (range 0.0 - 2.0 for OpenAI, 0.0 - 1.0 for Anthropic)

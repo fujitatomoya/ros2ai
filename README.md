@@ -149,6 +149,8 @@ User need to choose which of them is used by `ros2ai` as following configuration
 | ROS2AI_TEMPERATURE     | 1.0                         | [OpenAI temperature](https://platform.openai.com/docs/guides/text-generation/how-should-i-set-the-temperature-parameter), 0.0 - 1.0 for Anthropic |
 | ROS2AI_ROLE_SYSTEM     | built-in system role        | System role for the prompt, `{}` is replaced with the ROS distribution name |
 | ROS2AI_DOCS_CACHE      | '~/.cache/ros2ai/docs'      | Directory caching the [ROS 2 documentation](https://github.com/ros2/ros2_documentation) sources per distribution |
+| ROS2AI_CONTEXT_LIMIT   | 16000                       | Context limit of the session in estimated tokens, the oldest requests are dropped beyond it. Lower it for the local models with a small context window (e.g Ollama `num_ctx`) |
+| ROS2AI_SESSION_FILE    | `~/.local/state/ros2ai/session.json` | Session file to continue the previous requests with `--continue` (`$XDG_STATE_HOME` is honored) |
 
 > [!NOTE]
 > These are optional environmental variables. if not set, default value will be used.
@@ -164,6 +166,7 @@ The following command line options prevail over the environmental variables, see
 | `-r`, `--role <role>`    | System role for the prompt, prevails over `ROS2AI_ROLE_SYSTEM` |
 | `-y`, `--yes`            | Execute the commands that change the system without confirmation |
 | `--dry-run`              | Print the commands that change the system instead of executing them |
+| `-c`, `--continue`       | Continue the previous session with the request, see [Session](#session) |
 | `-n`, `--nostream`       | Disable the streaming of the answer |
 | `-v`, `--verbose`        | Print the configuration, system role, tool calls and results |
 | `-s`, `--status`         | Check the LLM API status and configuration |
@@ -347,6 +350,49 @@ A reliable subscription on a best-effort publisher gets no messages. This is a c
 
 Source: https://docs.ros.org/en/rolling/ROS-Framework/interfaces/topics/About-Quality-of-Service-Settings.html
 ```
+#### Session
+
+`ros2 ai` keeps the context of the session, so that the follow-up requests can refer to the previous ones (e.g `it`).
+
+- `ros2 ai` without a request starts the interactive session, the context is kept until the session ends with `exit` or Ctrl-D. `/clear` forgets the context, Ctrl-C aborts the request in progress.
+
+  ```bash
+  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai
+  ros2ai interactive session (model: gpt-5, endpoint: https://api.openai.com/v1)
+  Type /help for the commands, exit or Ctrl-D to end the session.
+  ros2ai> do we have /chatter topic?
+  [ros2ai]: ros2 topic list -t
+  /chatter [std_msgs/msg/String]
+  /parameter_events [rcl_interfaces/msg/ParameterEvent]
+  /rosout [rcl_interfaces/msg/Log]
+  Yes, the /chatter topic (std_msgs/msg/String) is available.
+  ros2ai> subscribe it
+  [ros2ai]: ros2 topic echo --once /chatter
+  data: 'Hello World: 12'
+  ---
+  Subscribed to /chatter and received the message 'Hello World: 12'.
+  ros2ai> exit
+  ```
+
+- `--continue` (`-c`) continues the previous session with a single request, every request is saved to the session file.
+
+  ```bash
+  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai "do we have /chatter topic?"
+  [ros2ai]: ros2 topic list -t
+  /chatter [std_msgs/msg/String]
+  /parameter_events [rcl_interfaces/msg/ParameterEvent]
+  /rosout [rcl_interfaces/msg/Log]
+  Yes, the /chatter topic (std_msgs/msg/String) is available.
+  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai -c "subscribe it"
+  [ros2ai]: ros2 topic echo --once /chatter
+  data: 'Hello World: 25'
+  ---
+  Subscribed to /chatter and received the message 'Hello World: 25'.
+  ```
+
+> [!NOTE]
+> The messages of the previous requests are sent with every request, so the token consumption grows with the session.
+> The oldest requests are dropped when the estimated number of tokens exceeds `ROS2AI_CONTEXT_LIMIT`, or when the endpoint reports that the context length is exceeded.
 
 #### Multiple Language
 
