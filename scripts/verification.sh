@@ -6,6 +6,10 @@
 # Localhost could be physical machine or container runtime environment,
 # this script is agnostic from the system but just checks if ros2ai
 # works okay with accessing the LLM API endpoints.
+#
+# The interactive session is driven by the requests piped to the standard
+# input, so that the script runs without a terminal. The session file is
+# isolated from the user's one, see ROS2AI_SESSION_FILE below.
 #####################################################################
 
 ################
@@ -24,10 +28,14 @@ ROS_DISTRO="${ROS_DISTRO:-rolling}"
 VERIFY_ENDPOINT="${ROS2AI_ENDPOINT:-${OPENAI_ENDPOINT:-https://api.openai.com/v1}}"
 VERIFY_MODEL="${ROS2AI_MODEL_NAME:-${OPENAI_MODEL_NAME:-gpt-5}}"
 
+# the session (--continue and interactive session) is saved to a temporary file,
+# so that the verification does not touch the session of the user.
+VERIFY_SESSION_DIR="$(mktemp -d)"
+export ROS2AI_SESSION_FILE="$VERIFY_SESSION_DIR/session.json"
+
 # update this list to local verification
 # CAUTION: BE ADVISED THAT THIS WILL USE YOUR API KEY.
 command_list=(
-    "ros2 ai"
     "ros2 ai -h"
     "ros2 ai -s"
     "ros2 ai -svl"
@@ -42,10 +50,20 @@ command_list=(
     "ros2 ai -m $VERIFY_MODEL -u $VERIFY_ENDPOINT \"give me all topics\""
     "ros2 ai \"give me all topics\" --dry-run"
     "ros2 ai \"give me all topics\" -v"
+    "ros2 ai \"give me all topics\" -T"
     "ros2 ai \"give me all topics\" -n"
     "ros2 ai \"give me detailed info for topic /rosout\""
     "ros2 ai \"publish hello message on /chatter topic\" --dry-run"
     "ros2 ai \"publish hello message on /chatter topic\" -y"
+    # session mode: the context of the previous request is kept with --continue
+    "ros2 ai \"remember the word banana, answer briefly\""
+    "ros2 ai -c \"which word did I ask you to remember?\""
+    "ros2 ai -c -v \"say hello\""
+    # interactive session: the requests are read from the standard input until EOF or exit
+    "ros2 ai < /dev/null"
+    "printf 'say hello\n/help\n/clear\nexit\n' | ros2 ai"
+    "printf 'remember the word orange, answer briefly\nwhich word did I ask you to remember?\nquit\n' | ros2 ai -n"
+    "printf 'which word did I ask you to remember?\n' | ros2 ai -c"
 )
 
 ########################
@@ -61,11 +79,17 @@ function exit_trap() {
     fi
 }
 
+function cleanup_trap() {
+    # shellcheck disable=SC2317  # Don't warn about unreachable commands in this function
+    rm -rf "$VERIFY_SESSION_DIR"
+}
+
 function check_and_exit() {
     # shellcheck disable=SC2317  # Don't warn about unreachable commands in this function
-    if [ $? -ne 0 ]; then
-        echo "Error: [$BASH_COMMAND] failed with exit code $?"
-        exit $?
+    local status=$?
+    if [ $status -ne 0 ]; then
+        echo "Error: [$BASH_COMMAND] failed with exit code $status"
+        exit $status
     fi
 }
 
@@ -76,6 +100,7 @@ function check_user_setting () {
         echo "ROS2AI_API_KEY is not set, if accessing OpenAI or Anthropic it will fail to call API."
     fi
     echo "endpoint: $VERIFY_ENDPOINT, model: $VERIFY_MODEL"
+    echo "session file: $ROS2AI_SESSION_FILE"
     # check if ros2 environment setting (trap function can catch the error)
     ros2
 }
@@ -86,7 +111,7 @@ function verify_ros2ai() {
     # execute all commands in the list
     for command in "${command_list[@]}"; do
         echo "----- $command"
-        eval $command
+        eval "$command"
         check_and_exit
     done
     echo "----- all ros2ai commands return successfully!!! -----"
@@ -96,8 +121,9 @@ function verify_ros2ai() {
 # Main #
 ########
 
-# set the trap on error
+# set the trap on error, and remove the temporary session file on exit
 trap exit_trap ERR
+trap cleanup_trap EXIT
 
 # call verification sequence
 check_user_setting
