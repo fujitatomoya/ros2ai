@@ -81,6 +81,9 @@ class ToolResult:
 
     output: str
     returncode: int
+    # print the output to the user, False for the content only meant for the model
+    # (e.g a documentation page), the user sees it with the verbose option
+    printable: bool = True
 
 
 class ToolProvider(ABC):
@@ -452,7 +455,8 @@ class Ros2CliProvider(ToolProvider):
     Tool provider that executes the `ros2` command line interface.
 
     Besides the tools that map to a single command, the provider offers the composite tools
-    (see `ros2ai.api.composite`) that run several commands and return one result.
+    (see `ros2ai.api.composite`) that run several commands and return one result, and the
+    documentation tools (see `ros2ai.api.docs`) that look up the ROS 2 documentation.
     """
 
     def __init__(
@@ -464,12 +468,14 @@ class Ros2CliProvider(ToolProvider):
         Create the provider.
 
         :param tools: single command tools.
-        :param composites: composite tools, the default composite tools if None.
+        :param composites: tools implemented in Python (composite and documentation tools),
+            the default composite and documentation tools if None.
         """
         if composites is None:
-            # imported here, the composite module depends on this module
+            # imported here, these modules depend on this module
             from ros2ai.api.composite import COMPOSITE_TOOLS
-            composites = COMPOSITE_TOOLS
+            from ros2ai.api.docs import DOCS_TOOLS
+            composites = (*COMPOSITE_TOOLS, *DOCS_TOOLS)
         self._tools = {tool.name: tool for tool in tools}
         self._composites = {tool.name: tool for tool in composites}
         duplicated = set(self._tools) & set(self._composites)

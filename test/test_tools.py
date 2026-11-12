@@ -22,6 +22,7 @@ import subprocess
 import pytest
 from ros2ai.api.composite import COMPOSITE_TOOLS
 import ros2ai.api.constants as constants
+from ros2ai.api.docs import DOCS_TOOLS
 from ros2ai.api.tools import GENERIC_TOOL_NAME
 from ros2ai.api.tools import ROS2_TOOLS
 from ros2ai.api.tools import Ros2CliProvider
@@ -37,7 +38,7 @@ def provider():
 
 def test_definitions_format(provider):
     definitions = provider.definitions()
-    assert len(definitions) == len(ROS2_TOOLS) + len(COMPOSITE_TOOLS)
+    assert len(definitions) == len(ROS2_TOOLS) + len(COMPOSITE_TOOLS) + len(DOCS_TOOLS)
     names = [definition['function']['name'] for definition in definitions]
     assert names == provider.names
     assert len(set(names)) == len(names)

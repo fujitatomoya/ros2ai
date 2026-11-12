@@ -135,6 +135,10 @@ User need to choose which of them is used by `ros2ai` as following configuration
   ollama list
   ```
 
+  > [!NOTE]
+  > Ollama loads the models with a small context window (4096 tokens) by default, which is not enough for the tool calling (tool definitions, tool results) and ends up with `no user query found in messages` error.
+  > Set `OLLAMA_CONTEXT_LENGTH=16384` (or more) in the environment of the Ollama service, see [Ollama FAQ](https://github.com/ollama/ollama/blob/main/docs/faq.md).
+
 #### Optional
 
 | environmental variable | default                     | Note                   |
@@ -144,6 +148,7 @@ User need to choose which of them is used by `ros2ai` as following configuration
 | ROS2AI_ENDPOINT        | 'https://api.openai.com/v1' | API endpoint URL. e.g) https://api.anthropic.com/v1/ (Anthropic), http://127.0.0.1:11434/v1 (Ollama) |
 | ROS2AI_TEMPERATURE     | 1.0                         | [OpenAI temperature](https://platform.openai.com/docs/guides/text-generation/how-should-i-set-the-temperature-parameter), 0.0 - 1.0 for Anthropic |
 | ROS2AI_ROLE_SYSTEM     | built-in system role        | System role for the prompt, `{}` is replaced with the ROS distribution name |
+| ROS2AI_DOCS_CACHE      | '~/.cache/ros2ai/docs'      | Directory caching the [ROS 2 documentation](https://github.com/ros2/ros2_documentation) sources per distribution |
 
 > [!NOTE]
 > These are optional environmental variables. if not set, default value will be used.
@@ -311,6 +316,37 @@ The ROS 2 assistant decides by itself whether to answer the question or to opera
 
   > [!NOTE]
   > If the endpoint or the model does not support tool calling, the assistant answers the request without tools, nothing is executed.
+
+#### Documentation Lookup
+
+The assistant can look up the official [ROS 2 documentation](https://docs.ros.org/en/rolling/) of the running distribution (`ROS_DISTRO`) with the documentation tools, so that the answers about the ROS 2 concepts, tutorials, tools and APIs are grounded on the documentation of your distribution, and cite the page.
+`search_ros2_docs` searches the pages, `read_ros2_docs` reads a page, the pages found are printed under the tool call.
+
+The documentation sources ([ros2/ros2_documentation](https://github.com/ros2/ros2_documentation), one branch per distribution) are downloaded once into `~/.cache/ros2ai/docs/<distro>` (about 5MB) on the first lookup, and refreshed when older than a week.
+The lookup works offline afterwards, without the cache the assistant answers from its own knowledge.
+
+```bash
+root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai "what is the difference between reliable and best effort QoS?"
+[ros2ai]: search_ros2_docs(query='quality of service reliability reliable best effort', limit=3)
+[ros2ai]:   downloaded the ROS 2 rolling documentation to /root/.cache/ros2ai/docs/rolling
+[ros2ai]:   https://docs.ros.org/en/rolling/ROS-Framework/interfaces/topics/About-Quality-of-Service-Settings.html
+[ros2ai]:   https://docs.ros.org/en/rolling/ROS-Framework/interfaces/topics/Working-with-topics/Quality-of-Service.html
+[ros2ai]:   https://docs.ros.org/en/rolling/ROS-Framework/interfaces/topics/Working-with-topics/Configuring-QoS-Overrides.html
+[ros2ai]: read_ros2_docs(page=ROS-Framework/interfaces/topics/About-Quality-of-Service-Settings)
+[ros2ai]:   https://docs.ros.org/en/rolling/ROS-Framework/interfaces/topics/About-Quality-of-Service-Settings.html
+[ros2ai]: read_ros2_docs(page=ROS-Framework/interfaces/topics/About-Quality-of-Service-Settings, offset=3500)
+[ros2ai]:   https://docs.ros.org/en/rolling/ROS-Framework/interfaces/topics/About-Quality-of-Service-Settings.html
+**Reliable and best effort are the two values of the QoS reliability policy.**
+
+- **Best effort** tries to deliver each sample but may lose it if the network is not robust. It does not retry, so it has lower latency and overhead. It is closest to UDP. The built-in **sensor data** profile uses it, because the latest reading matters more than receiving every reading.
+- **Reliable** guarantees that samples are delivered and may retry several times. It is closest to TCP, but the docs note it is still implemented over UDP. It is the default for publishers and subscriptions, and also for services and parameters.
+
+**Compatibility.** A subscription asks for a minimum quality and a publisher offers a maximum. A connection is only made if the request is not stricter than the offer:
+...
+A reliable subscription on a best-effort publisher gets no messages. This is a common reason a topic looks silent, for example with a camera or lidar driver that publishes best effort.
+
+Source: https://docs.ros.org/en/rolling/ROS-Framework/interfaces/topics/About-Quality-of-Service-Settings.html
+```
 
 #### Multiple Language
 

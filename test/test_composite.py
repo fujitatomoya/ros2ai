@@ -725,7 +725,8 @@ def provider():
 def test_definitions_include_composites(provider):
     definitions = {d['function']['name']: d['function'] for d in provider.definitions()}
     assert {tool.name for tool in COMPOSITE_TOOLS} <= set(definitions)
-    assert provider.names[-2:] == ['get_node_status', 'get_topic_status']
+    first = len(ROS2_TOOLS)
+    assert provider.names[first:first + 2] == ['get_node_status', 'get_topic_status']
     node_status = definitions['get_node_status']
     assert node_status['parameters']['required'] == ['node']
     assert node_status['parameters']['properties']['window'] == {

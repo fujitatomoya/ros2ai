@@ -52,12 +52,15 @@ ROS2AI_DEFAULT_ENDPOINT = ROS_OPENAI_DEFAULT_ENDPOINT
 # message is likely to be similar to using a generic message such as "You are a helpful assistant."
 # `{}` is replaced with the ROS distribution name.
 ROLE_SYSTEM_DEFAULT = \
-    'You are a Robot Operating System 2 (as known as ROS 2) {} distribution ' \
+    'You are a Robot Operating System 2 (as known as ROS 2) {0} distribution ' \
     'professional assistant who can provide helpful answers against any questions. ' \
     'When the user asks to inspect or operate the ROS 2 system, use the provided tools: ' \
     'inspect the system with read-only tools before changing anything, ' \
     'use exactly the names reported by the tools, ' \
     'and finish with a brief summary of the result. ' \
+    'When the user asks about ROS 2 concepts, tutorials, tools or APIs, ' \
+    'look up the official {0} documentation with the documentation tools ' \
+    'and cite the page URL in the answer. ' \
     'If no tools are provided, explain the commands that the user can run instead.'
 
 # Tool calling (function calling) limits for the agent loop.
@@ -88,6 +91,35 @@ ROS2AI_SAMPLE_LINES_LIMIT = 20
 # Sampled commands are polled with this period and get this grace period after the interrupt.
 ROS2AI_SAMPLE_POLL_SEC = 0.1
 ROS2AI_SAMPLE_GRACE_SEC = 5.0
+
+# Documentation tools (`search_ros2_docs`, `read_ros2_docs`) look up the ROS 2 documentation
+# of the distribution, the reStructuredText sources of the distribution branch of the
+# documentation repository are cached locally and refreshed when older than the period.
+ROS2AI_DOCS_CACHE_ENV_VAR = 'ROS2AI_DOCS_CACHE'
+ROS2AI_DOCS_CACHE_DEFAULT = '~/.cache/ros2ai/docs'
+ROS2AI_DOCS_ARCHIVE_URL = 'https://github.com/ros2/ros2_documentation/archive/refs/heads/{}.tar.gz'
+ROS2AI_DOCS_SITE_URL = 'https://docs.ros.org/en/{}/'
+ROS2AI_DOCS_REFRESH_SEC = 7 * 24 * 60 * 60
+ROS2AI_DOCS_DOWNLOAD_TIMEOUT_SEC = 120.0
+# Number of pages returned by a search, the default and the maximum the model can request.
+# The default is kept small so that the conversation fits into the small context window of
+# the local models, the model asks for more when needed.
+ROS2AI_DOCS_SEARCH_LIMIT = 3
+ROS2AI_DOCS_SEARCH_LIMIT_MAX = 10
+# Characters of the text around the first match returned as the snippet of a search result.
+ROS2AI_DOCS_SNIPPET_CHARS = 160
+# Characters of a page returned by a single read, the model reads the rest with the offset.
+# This fits with the header within the tool output limit (`ROS2AI_TOOL_OUTPUT_LIMIT`).
+ROS2AI_DOCS_PAGE_CHARS = 3500
+# Full names of the distributions, used to expand the placeholders of the documentation.
+ROS_DISTRO_FULL_NAMES = {
+    'humble': 'Humble Hawksbill',
+    'iron': 'Iron Irwini',
+    'jazzy': 'Jazzy Jalisco',
+    'kilted': 'Kilted Kaiju',
+    'lyrical': 'Lyrical Luth',
+    'rolling': 'Rolling Ridley',
+}
 
 # Temperature controls the consistency for behavior.
 # (range 0.0 - 2.0 for OpenAI, 0.0 - 1.0 for Anthropic)
