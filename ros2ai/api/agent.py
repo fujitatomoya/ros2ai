@@ -23,6 +23,7 @@ from ros2ai.api.client import ChatCompletionClient, ChatCompletionParameters
 import ros2ai.api.constants as constants
 from ros2ai.api.session import Conversation
 from ros2ai.api.tools import ToolCommand, ToolError, ToolPolicy, ToolProvider, ToolResult
+import ros2ai.api.tracing as tracing
 from ros2ai.api.utils import run_executable, truncate_output
 
 
@@ -36,7 +37,7 @@ class AgentOptions:
     auto_approve: bool = False
     # stream the completions, the content is printed as it arrives
     stream: bool = True
-    # print the raw completions, the tool calls and the tool results
+    # print the raw completions, the tool calls and the tool results (implies the trace)
     verbose: bool = False
     max_steps: int = constants.ROS2AI_MAX_STEPS
     output_limit: int = constants.ROS2AI_TOOL_OUTPUT_LIMIT
@@ -169,12 +170,15 @@ class Agent:
                 return ToolResult('dry-run: the command was not executed.', 0)
             if not self._options.auto_approve and not self._confirm(display):
                 return ToolResult('the user declined to execute the command.', 1)
-        print(f'[ros2ai]: {display}')
+            # the user must know what changed the system, with the trace or not
+            tracing.notice(display)
+        else:
+            tracing.trace(display)
         if command.policy == ToolPolicy.LONG_RUNNING:
             raise _Exit(run_executable(command=command.argv))
         result = self._provider.run(command)
         if result.output and result.printable:
-            print(result.output)
+            tracing.output(result.output)
         return result
 
     def execute_command(self, command: ToolCommand) -> int:
@@ -200,7 +204,7 @@ class Agent:
         while not self._client.call(self._parameters(conversation, tools)):
             if not context_exceeded(self._client.get_error()) or not conversation.drop_oldest():
                 return None
-            print('[ros2ai]: the context length is exceeded, the oldest turn is dropped.')
+            tracing.notice('the context length is exceeded, the oldest turn is dropped.')
         if self._options.verbose:
             # raw completion is only available without streaming
             self._client.print_all()
@@ -224,7 +228,7 @@ class Agent:
             content = truncate_output(result.output, self._options.output_limit) or '(no output)'
         except (json.JSONDecodeError, ToolError) as e:
             content = f'error: {e}'
-            print(f'[ros2ai]: tool call {name} failed, {e}')
+            tracing.notice(f'tool call {name} failed, {e}')
         if self._options.verbose:
             print(f'Tool result: {content}')
         return _tool_message(tool_call.id, content)

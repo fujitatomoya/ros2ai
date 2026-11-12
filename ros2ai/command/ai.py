@@ -22,6 +22,7 @@ from ros2ai.api.config import get_context_limit, OpenAiConfig, resolve_role_syst
 from ros2ai.api.constants import ROLE_SYSTEM_DEFAULT
 from ros2ai.api.session import Conversation, default_session_file, interactive_loop
 from ros2ai.api.tools import Ros2CliProvider
+import ros2ai.api.tracing as tracing
 from ros2cli.command import CommandExtension
 
 # user message sent to check that the configured model answers
@@ -100,6 +101,8 @@ class Session:
 
     def __init__(self, args):
         self._args = args
+        # the trace of the tool calls is printed on demand, see `ros2ai.api.tracing`
+        tracing.enable(args.trace or args.verbose)
         self._config = OpenAiConfig(args)
         self._client = ChatCompletionClient(self._config)
         options = AgentOptions(

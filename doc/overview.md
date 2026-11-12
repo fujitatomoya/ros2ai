@@ -133,7 +133,7 @@ i believe that is exactly where AI comes to play. instead of paying the resource
 
 # Tool Calling Policy
 
-- Every tool maps to [ros2cli](https://github.com/ros2/ros2cli), executed without shell and printed before execution.
+- Every tool maps to [ros2cli](https://github.com/ros2/ros2cli), executed without shell. The commands that change the system are printed, `--trace` prints every tool call with its output.
 - **read-only** (`node`, `topic list/info/echo`, `param get`...) run automatically.
 - **mutating** (`topic pub`, `service call`, `param set`...) require confirmation, `--yes` skips it, `--dry-run` only prints the candidates.
 - **long-running** (`run`, `launch`, `bag record`...) require confirmation and run in foreground until `Ctrl-C`.

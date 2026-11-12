@@ -36,6 +36,7 @@ from ros2ai.api.tools import ROS2_TOOLS
 from ros2ai.api.tools import Ros2CliProvider
 from ros2ai.api.tools import ToolError
 from ros2ai.api.tools import ToolPolicy
+import ros2ai.api.tracing as tracing
 import yaml
 
 QOS_PAGE = """\
@@ -145,6 +146,12 @@ def cache(cache_root, download):
 @pytest.fixture
 def provider():
     return Ros2CliProvider()
+
+
+@pytest.fixture
+def traced(monkeypatch):
+    """Print the trace, the pages found are printed under the tool call."""
+    monkeypatch.setattr(tracing, '_enabled', True)
 
 
 def test_cache_root_default(monkeypatch):
@@ -366,7 +373,7 @@ def run_tool(provider, name, arguments):
     return provider.run(provider.resolve(name, arguments))
 
 
-def test_search_tool(provider, cache_root, download, capsys):
+def test_search_tool(provider, cache_root, download, capsys, traced):
     result = run_tool(provider, 'search_ros2_docs', {'query': 'quality of service', 'limit': 1})
     assert result.returncode == 0
     assert result.printable is False
@@ -392,7 +399,7 @@ def test_search_tool(provider, cache_root, download, capsys):
     assert len(download.requests) == 1
 
 
-def test_read_tool(provider, cache_root, download, capsys, monkeypatch):
+def test_read_tool(provider, cache_root, download, capsys, monkeypatch, traced):
     monkeypatch.setattr(constants, 'ROS2AI_DOCS_PAGE_CHARS', 100)
     page = 'Concepts/Intermediate/About-Quality-of-Service-Settings'
     url = f'https://docs.ros.org/en/rolling/{page}.html'
@@ -435,6 +442,19 @@ def test_read_tool(provider, cache_root, download, capsys, monkeypatch):
     assert result.output == \
         "unknown page 'Concepts/Missing', use search_ros2_docs to find the page name"
     assert capsys.readouterr().out.count('[ros2ai]:') == 3
+
+
+def test_search_tool_quiet(provider, cache_root, download, capsys):
+    result = run_tool(provider, 'search_ros2_docs', {'query': 'quality of service', 'limit': 1})
+    assert result.returncode == 0
+    # the download is notified without the trace, not indented since the tool call is not
+    # printed, and the pages found are not printed
+    assert capsys.readouterr().out == \
+        f'[ros2ai]: downloaded the ROS 2 rolling documentation to {cache_root}/rolling\n'
+    page = 'Concepts/Intermediate/About-Quality-of-Service-Settings'
+    result = run_tool(provider, 'read_ros2_docs', {'page': page})
+    assert result.returncode == 0
+    assert capsys.readouterr().out == ''
 
 
 def test_tools_without_documentation(provider, cache_root, monkeypatch, capsys):

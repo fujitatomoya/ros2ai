@@ -29,6 +29,7 @@ from ros2ai.api.tools import ToolError
 from ros2ai.api.tools import ToolPolicy
 from ros2ai.api.tools import ToolProvider
 from ros2ai.api.tools import ToolResult
+import ros2ai.api.tracing as tracing
 
 
 def tool_call(call_id, name, arguments):
@@ -89,6 +90,14 @@ class FakeProvider(ToolProvider):
     def run(self, command):
         self.executed.append(command.argv)
         return ToolResult(f'output of {command.argv[1]}', 0)
+
+
+@pytest.fixture(autouse=True)
+def traced():
+    """Print the trace in these tests, the quiet default is tested by `test_quiet_*`."""
+    tracing.enable(True)
+    yield
+    tracing.enable(False)
 
 
 @pytest.fixture
@@ -327,6 +336,65 @@ def test_output_not_printable(capsys, no_confirm):
     out = capsys.readouterr().out
     assert out.count('only for the model') == 1
     assert 'Tool result: only for the model\n' in out
+
+
+def test_quiet_read_only_tool_not_printed(capsys, no_confirm):
+    tracing.enable(False)
+    client = FakeClient([
+        message(tool_calls=[tool_call('c1', 'read', {'args': ['a']})]),
+        message(content='done'),
+    ])
+    provider = FakeProvider()
+    agent = Agent(client, provider, options(), confirm=no_confirm)
+    assert agent.run(Conversation('system'), 'request') == 0
+    assert provider.executed == [['ros2', 'read', 'a']]
+    # neither the command nor its output is printed without the trace, the model gets it
+    assert capsys.readouterr().out == 'done\n'
+    assert client.calls[1].messages[3]['content'] == 'output of read'
+
+
+def test_quiet_mutating_tool_printed(capsys, no_confirm):
+    tracing.enable(False)
+    client = FakeClient([
+        message(tool_calls=[tool_call('c1', 'write', {'args': ['x']})]),
+        message(content='done'),
+    ])
+    agent = Agent(client, FakeProvider(), options(auto_approve=True), confirm=no_confirm)
+    assert agent.run(Conversation('system'), 'request') == 0
+    # the command that changes the system is printed regardless of the trace, not its output
+    assert capsys.readouterr().out == '[ros2ai]: ros2 write x\ndone\n'
+
+
+def test_quiet_long_running_tool_printed(monkeypatch, capsys):
+    tracing.enable(False)
+    client = FakeClient([
+        message(tool_calls=[tool_call('c1', 'spin', {'args': ['talker']})])])
+    monkeypatch.setattr(agent_module, 'run_executable', lambda *, command: 0)
+    agent = Agent(client, FakeProvider(), options(), confirm=lambda command: True)
+    assert agent.run(Conversation('system'), 'request') == 0
+    assert capsys.readouterr().out == '[ros2ai]: ros2 spin talker\n'
+
+
+def test_quiet_dry_run_prints_candidates(capsys, no_confirm):
+    tracing.enable(False)
+    client = FakeClient([
+        message(tool_calls=[
+            tool_call('c1', 'read', {}), tool_call('c2', 'write', {'args': ['x']})]),
+        message(content='never requested'),
+    ])
+    agent = Agent(client, FakeProvider(), options(dry_run=True), confirm=no_confirm)
+    assert agent.run(Conversation('system'), 'request') == 0
+    assert capsys.readouterr().out == "Command Candidate: 'ros2 write x'\n"
+
+
+def test_quiet_failures_printed(capsys, no_confirm):
+    tracing.enable(False)
+    client = FakeClient([
+        message(tool_calls=[tool_call('c1', 'nope', {})]), message(content='sorry')])
+    agent = Agent(client, FakeProvider(), options(), confirm=no_confirm)
+    assert agent.run(Conversation('system'), 'request') == 0
+    assert capsys.readouterr().out == \
+        "[ros2ai]: tool call nope failed, unknown tool 'nope'\nsorry\n"
 
 
 def test_empty_output(no_confirm):

@@ -33,6 +33,7 @@ from urllib.request import Request, urlopen
 
 import ros2ai.api.constants as constants
 from ros2ai.api.tools import CompositeTool, Executor, Parameter, ToolPolicy, ToolResult
+import ros2ai.api.tracing as tracing
 from ros2ai.api.utils import get_ros_distro
 
 import yaml
@@ -398,9 +399,9 @@ def _dump(result: Dict[str, Any]) -> str:
     ).rstrip()
 
 
-def _print(line: str):
-    # the details are printed indented under the tool call, like the composite commands
-    print(f'[ros2ai]:   {line}')
+def _trace(line: str):
+    # the pages are traced indented under the tool call, like the composite commands
+    tracing.trace(line, nested=True)
 
 
 class DocsTool(CompositeTool):
@@ -424,7 +425,8 @@ class DocsTool(CompositeTool):
         cache = self.cache()
         try:
             for notice in cache.ensure():
-                _print(notice)
+                # the download takes a while and the refresh failure matters, printed regardless
+                tracing.notice(notice, nested=True)
         except DocsError as e:
             return ToolResult(
                 output=f'the ROS 2 {cache.distro} documentation is not available: {e}. '
@@ -461,7 +463,7 @@ class SearchDocsTool(DocsTool):
         limit = arguments.get('limit', constants.ROS2AI_DOCS_SEARCH_LIMIT)
         pages = cache.search(query, limit)
         for page in pages:
-            _print(page['url'])
+            _trace(page['url'])
         result = {'query': query, 'distro': cache.distro, 'pages': pages}
         if not pages:
             result['hint'] = 'no page matches, try fewer or different terms'
@@ -497,7 +499,7 @@ class ReadDocsTool(DocsTool):
                 returncode=1)
         title, text = pages[page]
         url = page_url(cache.distro, page)
-        _print(url)
+        _trace(url)
         if offset >= len(text):
             return ToolResult(
                 output=f'offset {offset} is beyond the end of the page ({len(text)} characters)',

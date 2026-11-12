@@ -31,6 +31,7 @@ import time
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import ros2ai.api.constants as constants
+import ros2ai.api.tracing as tracing
 
 
 class ToolPolicy(Enum):
@@ -435,8 +436,12 @@ class _CompositeExecutor(Executor):
 
     @staticmethod
     def _print(command: ToolCommand):
-        # the sub-commands are printed indented under the tool call, like every command
-        print(f'[ros2ai]:   {command.display()}')
+        # the sub-commands are traced indented under the tool call, the ones that change
+        # the system are printed regardless of the trace, like every command
+        if command.policy == ToolPolicy.READ_ONLY:
+            tracing.trace(command.display(), nested=True)
+        else:
+            tracing.notice(command.display(), nested=True)
 
     def run(self, arguments, timeout=constants.ROS2AI_TOOL_TIMEOUT_SEC):
         command = self._command(arguments, timeout)
