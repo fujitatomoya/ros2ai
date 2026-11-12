@@ -142,6 +142,8 @@ User need to choose which of them is used by `ros2ai` as following configuration
 | ROS2AI_ENDPOINT        | 'https://api.openai.com/v1' | API endpoint URL. e.g) https://api.anthropic.com/v1/ (Anthropic), http://127.0.0.1:11434/v1 (Ollama) |
 | ROS2AI_TEMPERATURE     | 1.0                         | [OpenAI temperature](https://platform.openai.com/docs/guides/text-generation/how-should-i-set-the-temperature-parameter), 0.0 - 1.0 for Anthropic |
 | ROS2AI_ROLE_SYSTEM     | built-in system role        | System role for the prompt, `{}` is replaced with the ROS distribution name |
+| ROS2AI_CONTEXT_LIMIT   | 16000                       | Context limit of the session in estimated tokens, the oldest requests are dropped beyond it. Lower it for the local models with a small context window (e.g Ollama `num_ctx`) |
+| ROS2AI_SESSION_FILE    | `~/.local/state/ros2ai/session.json` | Session file to continue the previous requests with `--continue` (`$XDG_STATE_HOME` is honored) |
 
 > [!NOTE]
 > These are optional environmental variables. if not set, default value will be used.
@@ -294,6 +296,50 @@ The ROS 2 assistant decides by itself whether to answer the question or to opera
 
   > [!NOTE]
   > If the endpoint or the model does not support tool calling, the assistant answers the request without tools, nothing is executed.
+
+#### Session
+
+`ros2 ai` keeps the context of the session, so that the follow-up requests can refer to the previous ones (e.g `it`).
+
+- `ros2 ai` without a request starts the interactive session, the context is kept until the session ends with `exit` or Ctrl-D. `/clear` forgets the context, Ctrl-C aborts the request in progress.
+
+  ```bash
+  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai
+  ros2ai interactive session (model: gpt-5, endpoint: https://api.openai.com/v1)
+  Type /help for the commands, exit or Ctrl-D to end the session.
+  ros2ai> do we have /chatter topic?
+  [ros2ai]: ros2 topic list -t
+  /chatter [std_msgs/msg/String]
+  /parameter_events [rcl_interfaces/msg/ParameterEvent]
+  /rosout [rcl_interfaces/msg/Log]
+  Yes, the /chatter topic (std_msgs/msg/String) is available.
+  ros2ai> subscribe it
+  [ros2ai]: ros2 topic echo --once /chatter
+  data: 'Hello World: 12'
+  ---
+  Subscribed to /chatter and received the message 'Hello World: 12'.
+  ros2ai> exit
+  ```
+
+- `--continue` (`-c`) continues the previous session with a single request, every request is saved to the session file.
+
+  ```bash
+  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai "do we have /chatter topic?"
+  [ros2ai]: ros2 topic list -t
+  /chatter [std_msgs/msg/String]
+  /parameter_events [rcl_interfaces/msg/ParameterEvent]
+  /rosout [rcl_interfaces/msg/Log]
+  Yes, the /chatter topic (std_msgs/msg/String) is available.
+  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai -c "subscribe it"
+  [ros2ai]: ros2 topic echo --once /chatter
+  data: 'Hello World: 25'
+  ---
+  Subscribed to /chatter and received the message 'Hello World: 25'.
+  ```
+
+> [!NOTE]
+> The messages of the previous requests are sent with every request, so the token consumption grows with the session.
+> The oldest requests are dropped when the estimated number of tokens exceeds `ROS2AI_CONTEXT_LIMIT`, or when the endpoint reports that the context length is exceeded.
 
 #### Multiple Language
 

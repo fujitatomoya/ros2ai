@@ -46,14 +46,19 @@ def run_executable(*, command) -> int:
             # If child process is running, forward the signal to it
             process.send_signal(sig)
 
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-
-    while process.returncode is None:
-        try:
-            process.communicate()
-        except KeyboardInterrupt:
-            pass
+    # the previous handlers are restored when the command exits, the interactive session
+    # continues after the command and Ctrl-C has to abort the request again
+    previous = {
+        sig: signal.signal(sig, signal_handler) for sig in (signal.SIGINT, signal.SIGTERM)}
+    try:
+        while process.returncode is None:
+            try:
+                process.communicate()
+            except KeyboardInterrupt:
+                pass
+    finally:
+        for sig, handler in previous.items():
+            signal.signal(sig, handler if handler is not None else signal.SIG_DFL)
     if process.returncode != 0:
         if -process.returncode in signal.valid_signals():
             print(signal.strsignal(-process.returncode))
