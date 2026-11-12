@@ -131,6 +131,16 @@ i believe that is exactly where AI comes to play. instead of paying the resource
 
 ---
 
+# Tool Calling Policy
+
+- Every tool maps to [ros2cli](https://github.com/ros2/ros2cli), executed without shell and printed before execution.
+- **read-only** (`node`, `topic list/info/echo`, `param get`...) run automatically.
+- **mutating** (`topic pub`, `service call`, `param set`...) require confirmation, `--yes` skips it, `--dry-run` only prints the candidates.
+- **long-running** (`run`, `launch`, `bag record`...) require confirmation and run in foreground until `Ctrl-C`.
+- **composite** (`get_node_status`, `get_topic_status`) run several commands in one call and return a YAML summary with warnings.
+
+---
+
 # Future Plans
 
 <!---
@@ -167,16 +177,6 @@ currently, `ros2ai` only supports single-shot completion API, that means we can 
 
 <!---
 # probably with LangChain::ConversationBufferMemory
---->
-
----
-
-# Daemonized Agent
-
-`ros2ai` can instantiate the agent daemon process as ROS 2 service, so that even other ROS 2 application running in the network can use LLM API via this proxy. those ROS 2 application can be agnostic from LLM specific APIs but ROS 2 service interface.
-
-<!---
-# Comment Here
 --->
 
 ---
