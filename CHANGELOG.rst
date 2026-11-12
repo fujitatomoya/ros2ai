@@ -2,8 +2,8 @@
 Changelog for package ros2ai
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.0 (2026-11-13)
+------------------
 * Adjust verification.sh to the session mode. (`#122 <https://github.com/fujitatomoya/ros2ai/issues/122>`_)
   `ros2 ai` without a request now starts the interactive session, so the
   verification blocked on the prompt. The interactive session is driven by

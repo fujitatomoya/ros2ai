@@ -5,7 +5,7 @@ package_name = 'ros2ai'
 
 setup(
     name=package_name,
-    version='0.1.3',
+    version='1.0.0',
     packages=find_packages(exclude=['test']),
     data_files=[
         ('share/' + package_name, ['package.xml']),
