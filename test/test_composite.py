@@ -34,6 +34,7 @@ from ros2ai.api.tools import Ros2CliProvider
 from ros2ai.api.tools import ToolError
 from ros2ai.api.tools import ToolPolicy
 from ros2ai.api.tools import ToolResult
+import ros2ai.api.tracing as tracing
 import yaml
 
 # Outputs captured from `ros2` on Rolling and Humble.
@@ -797,7 +798,15 @@ class FakeRun:
         return subprocess.CompletedProcess(argv, returncode, stdout, '')
 
 
-def test_run_composite_prints_sub_commands(provider, monkeypatch, capsys):
+@pytest.mark.parametrize('enabled, expected', [
+    (True, (
+        '[ros2ai]:   ros2 node info /talker\n'
+        '[ros2ai]:   ros2 topic hz /chatter\n'
+        '[ros2ai]:   ros2 param list /talker\n')),
+    (False, ''),
+])
+def test_run_composite_prints_sub_commands(provider, monkeypatch, capsys, enabled, expected):
+    monkeypatch.setattr(tracing, '_enabled', enabled)
     fake_run = FakeRun({
         ('ros2', 'node', 'info', '/talker'): (NODE_INFO_TALKER_ROLLING, 0),
         ('ros2', 'param', 'list', '/talker'): (PARAM_LIST_TALKER, 0),
@@ -817,10 +826,8 @@ def test_run_composite_prints_sub_commands(provider, monkeypatch, capsys):
     assert fake_run.calls == [
         ['ros2', 'node', 'info', '/talker'], ['ros2', 'param', 'list', '/talker']]
     assert sampled == [([['ros2', 'topic', 'hz', '/chatter']], 2)]
-    assert capsys.readouterr().out == (
-        '[ros2ai]:   ros2 node info /talker\n'
-        '[ros2ai]:   ros2 topic hz /chatter\n'
-        '[ros2ai]:   ros2 param list /talker\n')
+    # the read-only sub-commands are printed with the trace only
+    assert capsys.readouterr().out == expected
     status = yaml.safe_load(result.output)
     assert status['found'] is True
     assert status['publishers'][0]['hz'] == 1.0

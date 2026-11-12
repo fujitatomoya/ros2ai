@@ -168,7 +168,8 @@ The following command line options prevail over the environmental variables, see
 | `--dry-run`              | Print the commands that change the system instead of executing them |
 | `-c`, `--continue`       | Continue the previous session with the request, see [Session](#session) |
 | `-n`, `--nostream`       | Disable the streaming of the answer |
-| `-v`, `--verbose`        | Print the configuration, system role, tool calls and results |
+| `-T`, `--trace`          | Print the trace of the request: the tool calls, the executed commands and their output |
+| `-v`, `--verbose`        | Print the configuration, system role, tool calls and results (implies `--trace`) |
 | `-s`, `--status`         | Check the LLM API status and configuration |
 | `-l`, `--list-models`    | Print the available models on the endpoint |
 
@@ -227,7 +228,8 @@ The ROS 2 assistant decides by itself whether to answer the question or to opera
 - request ROS 2 assistant to operate the ROS 2 system.
 
   The assistant calls the [ros2cli](https://github.com/ros2/ros2cli) tools (`ros2 node`, `ros2 topic`, `ros2 service`, `ros2 param` and so on) via [tool calling](https://platform.openai.com/docs/guides/function-calling), observes the result and iterates until the request is done.
-  Every command is printed before it is executed, and executed without shell, so that the model can only run `ros2` commands.
+  Every command is executed without shell, so that the model can only run `ros2` commands.
+  The commands that change the system are printed before they are executed, the read-only commands and their output are not printed unless `--trace` (`-T`) is given, the answer is what you get.
 
   | Tool policy  | Commands                                                        | Behavior |
   | :----------- | :-------------------------------------------------------------- | :------- |
@@ -237,10 +239,6 @@ The ROS 2 assistant decides by itself whether to answer the question or to opera
 
   ```bash
   root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai "give me all topics"
-  [ros2ai]: ros2 topic list -t
-  /chatter [std_msgs/msg/String]
-  /parameter_events [rcl_interfaces/msg/ParameterEvent]
-  /rosout [rcl_interfaces/msg/Log]
   Here are all the available topics in your ROS 2 system:
   | Topic | Message Type |
   |-------|-------------|
@@ -249,6 +247,23 @@ The ROS 2 assistant decides by itself whether to answer the question or to opera
   | `/rosout` | `rcl_interfaces/msg/Log` |
   That's 3 topics in total. Let me know if you'd like to inspect any of them further (e.g., see publishers/subscribers, echo a message, or publish to one).
   root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai "publish hello message on /chatter topic" -y
+  [ros2ai]: ros2 topic pub --once -w 0 /chatter std_msgs/msg/String '{data: hello}'
+  Done — I published the message `hello` on `/chatter` (`std_msgs/msg/String`). Note: the topic currently shows 0 subscribers, so no node received it. Let me know if you want me to start a listener (e.g., `demo_nodes_cpp`'s `listener`) first.
+  ```
+
+  Without `-y`, the assistant asks `Execute 'ros2 topic pub --once -w 0 /chatter std_msgs/msg/String '{data: hello}''? [y/N]:` before publishing.
+
+  `--trace` (`-T`) prints the trace of the request to see how the assistant completes it: the tool calls, the executed commands and their output.
+
+  ```bash
+  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai "give me all topics" -T
+  [ros2ai]: ros2 topic list -t
+  /chatter [std_msgs/msg/String]
+  /parameter_events [rcl_interfaces/msg/ParameterEvent]
+  /rosout [rcl_interfaces/msg/Log]
+  Here are all the available topics in your ROS 2 system:
+  ...
+  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai "publish hello message on /chatter topic" -y -T
   [ros2ai]: ros2 topic info -v /chatter
   Type: std_msgs/msg/String
   ...
@@ -256,20 +271,19 @@ The ROS 2 assistant decides by itself whether to answer the question or to opera
   [ros2ai]: ros2 topic pub --once -w 0 /chatter std_msgs/msg/String '{data: hello}'
   publisher: beginning loop
   publishing #1: std_msgs.msg.String(data='hello')
-  Done — I published the message `hello` on `/chatter` (`std_msgs/msg/String`). Note: the topic currently shows 0 subscribers, so no node received it. Let me know if you want me to start a listener (e.g., `demo_nodes_cpp`'s `listener`) first.
+  Done — I published the message `hello` on `/chatter` (`std_msgs/msg/String`).
+  ...
   ```
-
-  Without `-y`, the assistant asks `Execute 'ros2 topic pub --once -w 0 /chatter std_msgs/msg/String '{data: hello}''? [y/N]:` before publishing.
 
   `--dry-run` prints the commands that change the system as candidates instead of executing them (read-only commands are still executed, so that the assistant can decide the command), `-v` prints the system role, the tool calls and results.
   The answers are streamed as they arrive, `-n` disables the streaming (the raw completions are printed with `-nv`).
 
   Composite tools answer a diagnostic question with several `ros2` commands in a single tool call, instead of one completion per command.
   `get_node_status` combines `node info`, `lifecycle get`, `param list` and `topic hz` of the published topics, `get_topic_status` combines `topic info -v`, `topic hz` and `topic echo --once`.
-  The commands are printed indented under the tool call, and the result is a YAML summary including the warnings found (lifecycle state not active, idle publisher, incompatible QoS and so on).
+  The result is a YAML summary including the warnings found (lifecycle state not active, idle publisher, incompatible QoS and so on), with `--trace` the commands are printed indented under the tool call.
 
   ```bash
-  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai "is /lc_talker healthy?"
+  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai "is /lc_talker healthy?" -T
   [ros2ai]: get_node_status(node=/lc_talker)
   [ros2ai]:   ros2 node info /lc_talker
   [ros2ai]:   ros2 lifecycle get /lc_talker
@@ -293,7 +307,7 @@ The ROS 2 assistant decides by itself whether to answer the question or to opera
   No — `/lc_talker` is not healthy. It's a **lifecycle node stuck in the `unconfigured` state**:
   ...
   So the node exists and is alive on the graph, but it has never been transitioned to an active state. If you'd like, I can transition it to `configured` → `active` via the lifecycle services (`/lc_talker/change_state`), or list the lifecycle service details first.
-  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai "what is the status of the /chatter topic?"
+  root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai "what is the status of the /chatter topic?" -T
   [ros2ai]: get_topic_status(topic=/chatter)
   [ros2ai]:   ros2 topic info -v /chatter
   [ros2ai]:   ros2 topic hz /chatter
@@ -323,13 +337,13 @@ The ROS 2 assistant decides by itself whether to answer the question or to opera
 #### Documentation Lookup
 
 The assistant can look up the official [ROS 2 documentation](https://docs.ros.org/en/rolling/) of the running distribution (`ROS_DISTRO`) with the documentation tools, so that the answers about the ROS 2 concepts, tutorials, tools and APIs are grounded on the documentation of your distribution, and cite the page.
-`search_ros2_docs` searches the pages, `read_ros2_docs` reads a page, the pages found are printed under the tool call.
+`search_ros2_docs` searches the pages, `read_ros2_docs` reads a page, with `--trace` the pages found are printed under the tool call.
 
 The documentation sources ([ros2/ros2_documentation](https://github.com/ros2/ros2_documentation), one branch per distribution) are downloaded once into `~/.cache/ros2ai/docs/<distro>` (about 5MB) on the first lookup, and refreshed when older than a week.
 The lookup works offline afterwards, without the cache the assistant answers from its own knowledge.
 
 ```bash
-root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai "what is the difference between reliable and best effort QoS?"
+root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai "what is the difference between reliable and best effort QoS?" -T
 [ros2ai]: search_ros2_docs(query='quality of service reliability reliable best effort', limit=3)
 [ros2ai]:   downloaded the ROS 2 rolling documentation to /root/.cache/ros2ai/docs/rolling
 [ros2ai]:   https://docs.ros.org/en/rolling/ROS-Framework/interfaces/topics/About-Quality-of-Service-Settings.html
@@ -361,15 +375,8 @@ Source: https://docs.ros.org/en/rolling/ROS-Framework/interfaces/topics/About-Qu
   ros2ai interactive session (model: gpt-5, endpoint: https://api.openai.com/v1)
   Type /help for the commands, exit or Ctrl-D to end the session.
   ros2ai> do we have /chatter topic?
-  [ros2ai]: ros2 topic list -t
-  /chatter [std_msgs/msg/String]
-  /parameter_events [rcl_interfaces/msg/ParameterEvent]
-  /rosout [rcl_interfaces/msg/Log]
   Yes, the /chatter topic (std_msgs/msg/String) is available.
   ros2ai> subscribe it
-  [ros2ai]: ros2 topic echo --once /chatter
-  data: 'Hello World: 12'
-  ---
   Subscribed to /chatter and received the message 'Hello World: 12'.
   ros2ai> exit
   ```
@@ -378,15 +385,8 @@ Source: https://docs.ros.org/en/rolling/ROS-Framework/interfaces/topics/About-Qu
 
   ```bash
   root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai "do we have /chatter topic?"
-  [ros2ai]: ros2 topic list -t
-  /chatter [std_msgs/msg/String]
-  /parameter_events [rcl_interfaces/msg/ParameterEvent]
-  /rosout [rcl_interfaces/msg/Log]
   Yes, the /chatter topic (std_msgs/msg/String) is available.
   root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai -c "subscribe it"
-  [ros2ai]: ros2 topic echo --once /chatter
-  data: 'Hello World: 25'
-  ---
   Subscribed to /chatter and received the message 'Hello World: 25'.
   ```
 

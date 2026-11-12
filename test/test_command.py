@@ -340,9 +340,8 @@ def test_dry_run(fake_openai, capsys):
     FakeRos2.stdout = '/chatter [std_msgs/msg/String]\n'
     assert run_command(['publish on', '/chatter', '--dry-run']) == 0
     out = capsys.readouterr().out
-    assert out == (
-        '[ros2ai]: ros2 topic list -t\n/chatter [std_msgs/msg/String]\n'
-        "Command Candidate: 'ros2 topic pub --once -w 0 /chatter std_msgs/msg/String'\n")
+    # the read-only command and its output are not printed without the trace
+    assert out == "Command Candidate: 'ros2 topic pub --once -w 0 /chatter std_msgs/msg/String'\n"
     assert FakeRos2.calls == [['ros2', 'topic', 'list', '-t']]
     client = fake_openai.instances[0]
     assert len(client.create_calls) == 2
@@ -379,7 +378,7 @@ def test_read_only_tools(fake_openai, capsys):
         'The /talker node publishes /chatter.',
     ]
     FakeRos2.stdout = '/talker\n'
-    assert run_command(['give me', 'all nodes']) == 0
+    assert run_command(['give me', 'all nodes', '-T']) == 0
     assert FakeRos2.calls == [['ros2', 'node', 'list'], ['ros2', 'node', 'info', '/talker']]
     out = capsys.readouterr().out
     assert out == (
@@ -400,9 +399,28 @@ def test_read_only_tools(fake_openai, capsys):
     ]
 
 
+def test_read_only_tools_quiet(fake_openai, capsys):
+    fake_openai.responses = [
+        [('ros2_node_list', {})], [('ros2_node_info', {'node': '/t'})], 'done']
+    assert run_command(['give me', 'all nodes']) == 0
+    assert FakeRos2.calls == [['ros2', 'node', 'list'], ['ros2', 'node', 'info', '/t']]
+    # the trace is not printed by default, the model still gets the output
+    assert capsys.readouterr().out == 'done\n'
+    calls = fake_openai.instances[0].create_calls
+    assert calls[1]['messages'][3]['content'] == 'fake ros2 output'
+
+
+def test_read_only_tools_verbose_implies_trace(fake_openai, capsys):
+    fake_openai.responses = [[('ros2_node_list', {})], 'done']
+    assert run_command(['give me', 'all nodes', '-nv']) == 0
+    out = capsys.readouterr().out
+    assert '[ros2ai]: ros2 node list\nfake ros2 output\n' in out
+    assert 'Tool call: ros2_node_list({})\n' in out
+
+
 def test_read_only_tools_nostream(fake_openai, capsys):
     fake_openai.responses = [[('ros2_node_list', {})], 'done']
-    assert run_command(['give me', 'all nodes', '-n']) == 0
+    assert run_command(['give me', 'all nodes', '-n', '--trace']) == 0
     assert FakeRos2.calls == [['ros2', 'node', 'list']]
     assert capsys.readouterr().out == '[ros2ai]: ros2 node list\nfake ros2 output\ndone\n'
     calls = fake_openai.instances[0].create_calls
@@ -422,7 +440,10 @@ def test_mutating_tool_confirmed(fake_openai, fake_confirm, capsys):
     assert FakeRos2.calls == [
         ['ros2', 'topic', 'pub', '--once', '-w', '0', '/chatter', 'std_msgs/msg/String',
          '{data: hello}']]
-    assert capsys.readouterr().out.endswith('published\n')
+    # the command that changes the system is printed without the trace, not its output
+    assert capsys.readouterr().out == (
+        "[ros2ai]: ros2 topic pub --once -w 0 /chatter std_msgs/msg/String '{data: hello}'\n"
+        'published\n')
 
 
 def test_mutating_tool_declined(fake_openai, fake_confirm, capsys):
@@ -440,6 +461,8 @@ def test_mutating_tool_yes(fake_openai, capsys):
         [('ros2_cli', {'arguments': ['lifecycle', 'set', '/n', 'configure']})], 'configured']
     assert run_command(['configure /n', '-y']) == 0
     assert FakeRos2.calls == [['ros2', 'lifecycle', 'set', '/n', 'configure']]
+    # with --yes the printed command is the only record of what was executed
+    assert capsys.readouterr().out == '[ros2ai]: ros2 lifecycle set /n configure\nconfigured\n'
 
 
 def test_long_running_tool(fake_openai, fake_confirm, monkeypatch, capsys):
@@ -558,7 +581,7 @@ def test_docs_tools(fake_openai, monkeypatch, tmp_path, capsys):
         [('read_ros2_docs', {'page': page})],
         f'Reliable delivery guarantees the samples, see {url}',
     ]
-    assert run_command(['what is the reliable QoS?']) == 0
+    assert run_command(['what is the reliable QoS?', '-T']) == 0
     assert FakeRos2.calls == []
     out = capsys.readouterr().out
     assert out == (
@@ -581,6 +604,24 @@ def test_docs_tools(fake_openai, monkeypatch, tmp_path, capsys):
     read_message = calls[2]['messages'][5]
     assert read_message['content'].startswith(f'page: {page}\n')
     assert 'Quality of Service settings in ROS 2 Rolling' in read_message['content']
+
+
+def test_docs_tools_quiet(fake_openai, monkeypatch, tmp_path, capsys):
+    from test_docs import FakeDownload, make_archive, QOS_PAGE
+    from ros2ai.api import docs
+    page = 'Concepts/Intermediate/About-Quality-of-Service-Settings'
+    monkeypatch.setenv(constants.ROS2AI_DOCS_CACHE_ENV_VAR, str(tmp_path))
+    monkeypatch.setattr(docs, 'urlopen', FakeDownload(make_archive({page: QOS_PAGE})))
+    fake_openai.responses = [
+        [('search_ros2_docs', {'query': 'quality of service reliability'})],
+        [('read_ros2_docs', {'page': page})],
+        'Reliable delivery guarantees the samples.',
+    ]
+    assert run_command(['what is the reliable QoS?']) == 0
+    # the download is notified since it takes a while, the tool calls and the pages are not
+    assert capsys.readouterr().out == (
+        f'[ros2ai]: downloaded the ROS 2 rolling documentation to {tmp_path}/rolling\n'
+        'Reliable delivery guarantees the samples.\n')
 
 
 def test_exec_composite_tool(fake_openai, monkeypatch, capsys):
@@ -617,7 +658,7 @@ def test_exec_composite_tool(fake_openai, monkeypatch, capsys):
             return 'average rate: 1.000\n\tmin: 1.000s max: 1.000s\n', None
     monkeypatch.setattr(subprocess, 'Popen', FakePopen)
 
-    assert run_command(['is /talker healthy?']) == 0
+    assert run_command(['is /talker healthy?', '-T']) == 0
     assert FakeRos2.calls == [
         ['ros2', 'node', 'info', '/talker'],
         ['ros2', 'topic', 'hz', '/chatter'],
@@ -734,8 +775,8 @@ def test_session_save_failure_is_reported(fake_openai, monkeypatch, capsys):
 
 
 def test_context_limit_env(fake_openai, monkeypatch, capsys):
-    # the system role is counted (about 175 tokens), each turn of 100 characters is about 45
-    monkeypatch.setenv(constants.ROS2AI_CONTEXT_LIMIT_ENV_VAR, '240')
+    # the system role is counted (about 202 tokens), each turn of 100 characters is about 44
+    monkeypatch.setenv(constants.ROS2AI_CONTEXT_LIMIT_ENV_VAR, '269')
     assert run_command(['x' * 100]) == 0
     assert len(session_turns()) == 1
     assert run_command(['-c', 'y' * 100]) == 0

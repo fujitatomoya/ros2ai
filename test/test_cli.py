@@ -32,6 +32,7 @@ def test_defaults():
     assert args.url is None
     assert args.token is None
     assert args.role is None
+    assert args.trace is False
     assert args.verbose is False
     assert args.yes is False
     assert args.dry_run is False
@@ -74,6 +75,11 @@ def test_request_arguments():
     assert args.verbose is True
     assert args.yes is True
     assert args.role == 'r'
+    args = parse(['list nodes', '-T'])
+    assert args.trace is True
+    assert args.verbose is False
+    args = parse(['list nodes', '--trace'])
+    assert args.trace is True
 
 
 def test_continue_arguments():
@@ -113,6 +119,7 @@ def test_ros2_ai_help(capsys, monkeypatch):
     assert '<request>' in out
     for option in (
             '-m', '--model', '-u', '--url', '-t', '--token', '-r', '--role', '-v', '--verbose',
+            '-T', '--trace',
             '-y', '--yes', '--dry-run', '-s', '--status', '-l', '--list-models',
             '-c', '--continue'):
         assert option in out

@@ -62,10 +62,15 @@ def add_arguments(parser):
         action='store_true',
         help='Prints using no streaming completion responses.')
     parser.add_argument(
+        '-T', '--trace',
+        action='store_true',
+        help='Prints the trace of the request: the tool calls, the executed commands and '
+             'their output. The commands that change the system are printed regardless.')
+    parser.add_argument(
         '-v', '--verbose',
         action='store_true',
         help='Prints detailed information: configuration, system role, tool calls and results, '
-             'and raw completions (only available with nostream option).')
+             'and raw completions (only available with nostream option). Implies --trace.')
     parser.add_argument(
         '-c', '--continue', dest='continue_session',
         action='store_true',

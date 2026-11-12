@@ -60,6 +60,8 @@ ROLE_SYSTEM_DEFAULT = \
     'inspect the system with read-only tools before changing anything, ' \
     'use exactly the names reported by the tools, ' \
     'and finish with a brief summary of the result. ' \
+    'The user does not see the tool results, so include the relevant names and values ' \
+    'in the answer instead of referring to them. ' \
     'When the user asks about ROS 2 concepts, tutorials, tools or APIs, ' \
     'look up the official {0} documentation with the documentation tools ' \
     'and cite the page URL in the answer. ' \
@@ -70,7 +72,7 @@ ROLE_SYSTEM_DEFAULT = \
 ROS2AI_MAX_STEPS = 10
 # Maximum number of characters of a tool output returned to the model, the head and the tail
 # are kept. This is kept small so that the conversation fits into the small context window
-# of the local models (e.g Ollama default), the whole output is always printed to the user.
+# of the local models (e.g Ollama default), the whole output is printed with the trace.
 ROS2AI_TOOL_OUTPUT_LIMIT = 4000
 # Timeout in seconds for a tool command, and for receiving a single message.
 ROS2AI_TOOL_TIMEOUT_SEC = 30.0
