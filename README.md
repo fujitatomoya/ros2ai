@@ -12,6 +12,7 @@ see [overview slide deck](https://raw.githack.com/fujitatomoya/ros2ai/rolling/do
 ## Motivation
 
 - (Just for fun 😝)
+- Thin wrapper for ros2cli and ros2documentation.
 - Getting answers against the questions directly without browsing, clicking and typing many times.
 - Easy to use for everyone, especially for [ROS 2](https://github.com/ros2) beginners and students who do not really know [ros2cli](https://github.com/ros2/ros2cli).
 - Multiple language support.
@@ -21,7 +22,9 @@ see [overview slide deck](https://raw.githack.com/fujitatomoya/ros2ai/rolling/do
 
 See how it works 🔥
 
-https://github.com/fujitatomoya/ros2ai/assets/43395114/78a0799b-40e3-4dc8-99cb-488994e94769
+![ros2ai demo](doc/images/ros2ai_demo.gif)
+
+(Full quality video: [ros2ai_demo.mp4](doc/images/ros2ai_demo.mp4))
 
 ## Supported [ROS Distribution](https://docs.ros.org/en/rolling/Releases.html)
 
@@ -53,8 +56,6 @@ docker run -it --rm --net=host -e ROS2AI_API_KEY=$ROS2AI_API_KEY -e ROS2AI_ENDPO
 
 > [!NOTE]
 > `ROS2AI_API_KEY` environmental variable is not required if using Ollama. And it is expecting that Ollama runs on the host system mostly, so that container is bound to the host network interface.
-
-https://github.com/fujitatomoya/ros2ai/assets/43395114/2af4fd44-2ccf-472c-9153-c3c19987dc96
 
 ### Required Package
 

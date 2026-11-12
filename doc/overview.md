@@ -29,27 +29,7 @@ page_number: true
 
 ---
 
-<video controls="controls" width="1000" src="https://github.com/user-attachments/assets/a5d4dda6-cd6b-41d1-8038-40e4906082b0">
-
-<!---
-# This demo only includes status check and query command.
---->
-
----
-
-<video controls="controls" width="1000" src="https://github.com/user-attachments/assets/6b6d8038-6d5a-4aaf-aace-bb9af4995145">
-
-<!---
-# Execution Demo only with multiple language.
---->
-
----
-
-<video controls="controls" width="1000" src="https://github.com/fujitatomoya/ros2ai/assets/43395114/2af4fd44-2ccf-472c-9153-c3c19987dc96">
-
-<!---
-# Docker container demonstration
---->
+<video controls="controls" width="1000" src="./images/ros2ai_demo.mp4">
 
 ---
 
@@ -60,8 +40,7 @@ page_number: true
 - Multiple Language Support.
 - Support beginners and students. (your best trainer)
 - Easy to use for everyone.
-- Dedicated / AI based Support (your own concierge)
-- Bridge / Proxy to [LLM](https://en.wikipedia.org/wiki/Large_language_model)
+- No extra dependencies instead of ros2cli.
 - Agnostic from LLM service (OpenAI, Anthropic, Ollama or any OpenAI compatible endpoint)
 
 <!---
@@ -149,49 +128,7 @@ i believe that is exactly where AI comes to play. instead of paying the resource
 
 ---
 
-# Future Plans
-
-<!---
-# These are just ideas, not even sure that is doable.
---->
-
----
-
-# Model Comparison
-
-- Experimental performance and accuracy comparison over different LLM models.
-
-<!---
-# Comment Here
---->
-
----
-
-# API Parameter Adjustment
-
-- for more stable AI behavior.
-- performance and accuracy comparison.
-- latency for user experience.
-
-<!---
-# Comment Here
---->
-
----
-
-# Context-Awareness
-
-`ros2ai` keeps the context of the session: "Is /chatter topic available?", "Subscribe it!". This ***it*** is recognized in the interactive session (`ros2 ai`) and with `ros2 ai --continue`. The messages of the previous requests are sent with every request, the oldest requests are dropped beyond the context limit.
-
-- Compaction of the oldest requests into a summary, instead of dropping them.
-
-<!---
-# Comment Here
---->
-
----
-
-# Audio Interface Support
+# Audio Interface Support??
 
 It would be really helpful to iterate via audio system instead of typing anymore.
 So the user can just talk to the `ros2ai` agent and then `ros2ai` answers any questions and executes the corresponding operations as user wants to do.
@@ -202,15 +139,10 @@ So the user can just talk to the `ros2ai` agent and then `ros2ai` answers any qu
 
 ---
 
-# Fine-tuning
+# Happy ROSing !!!
 
-- ROS 2 general fine-tuning
-  - this requires scaled training dataset for ROS 2, agnostic from user environment. could be distro specific. so that AI can response more precisely based on questions and requests.
-- User specified environment tuning
-  - this dataset should be uploaded to help more user specific problems and questions. if this is doable, `ros2ai` agent can the 1st customer support for anyone?
+![bg right:50% 50%](./images/qrcode_image.png)
 
 <!---
-# what we need to do is automate this fine-tuning process based on user's environment including distro.
-# this seems like a mandatory, because user's environment is really different one to another.
-# data set creation must be done by each user, and automated by script or some tools.
+# Comment Here
 --->
