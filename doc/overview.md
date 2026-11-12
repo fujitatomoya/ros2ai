@@ -131,6 +131,24 @@ i believe that is exactly where AI comes to play. instead of paying the resource
 
 ---
 
+# Tool Calling Policy
+
+- Every tool maps to [ros2cli](https://github.com/ros2/ros2cli), executed without shell and printed before execution.
+- **read-only** (`node`, `topic list/info/echo`, `param get`...) run automatically.
+- **mutating** (`topic pub`, `service call`, `param set`...) require confirmation, `--yes` skips it, `--dry-run` only prints the candidates.
+- **long-running** (`run`, `launch`, `bag record`...) require confirmation and run in foreground until `Ctrl-C`.
+- **composite** (`get_node_status`, `get_topic_status`) run several commands in one call and return a YAML summary with warnings.
+
+---
+
+# Documentation Grounding
+
+- The answers about ROS 2 concepts, tutorials, tools and APIs are grounded on the official [ROS 2 documentation](https://docs.ros.org/en/rolling/) of the running distribution (`ROS_DISTRO`), and cite the page.
+- `search_ros2_docs` and `read_ros2_docs` look up the [documentation sources](https://github.com/ros2/ros2_documentation) cached locally (`~/.cache/ros2ai/docs/<distro>`), downloaded once per distribution and refreshed weekly, offline afterwards.
+- Multi-language support stays on the mainline documentation, the model translates on demand.
+
+---
+
 # Future Plans
 
 <!---
@@ -166,16 +184,6 @@ i believe that is exactly where AI comes to play. instead of paying the resource
 `ros2ai` keeps the context of the session: "Is /chatter topic available?", "Subscribe it!". This ***it*** is recognized in the interactive session (`ros2 ai`) and with `ros2 ai --continue`. The messages of the previous requests are sent with every request, the oldest requests are dropped beyond the context limit.
 
 - Compaction of the oldest requests into a summary, instead of dropping them.
-
-<!---
-# Comment Here
---->
-
----
-
-# Daemonized Agent
-
-`ros2ai` can instantiate the agent daemon process as ROS 2 service, so that even other ROS 2 application running in the network can use LLM API via this proxy. those ROS 2 application can be agnostic from LLM specific APIs but ROS 2 service interface.
 
 <!---
 # Comment Here

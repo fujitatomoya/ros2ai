@@ -173,7 +173,7 @@ class Agent:
         if command.policy == ToolPolicy.LONG_RUNNING:
             raise _Exit(run_executable(command=command.argv))
         result = self._provider.run(command)
-        if result.output:
+        if result.output and result.printable:
             print(result.output)
         return result
 

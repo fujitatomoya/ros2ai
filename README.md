@@ -37,8 +37,10 @@ https://github.com/fujitatomoya/ros2ai/assets/43395114/78a0799b-40e3-4dc8-99cb-4
 
 ### Binary
 
+`ros2ai` is released for every supported distribution, replace `<distro>` with `rolling`, `lyrical`, `kilted`, `jazzy` or `humble`.
+
 ```bash
-apt install ros-kilted-ros2ai
+apt install ros-<distro>-ros2ai
 ```
 
 ### Docker Container
@@ -59,21 +61,21 @@ https://github.com/fujitatomoya/ros2ai/assets/43395114/2af4fd44-2ccf-472c-9153-c
 - `rolling` / `lyrical` / `kilted` / `jazzy`
 
   ```bash
-  pip install openai ollama validators --break-system-packages --ignore-installed
+  pip install openai validators --break-system-packages --ignore-installed
   ```
 
   > [!NOTE]
-  > see [PEP 668 – Marking Python base environments as “externally managed”](PEP 668 – Marking Python base environments as “externally managed”) why `--break-system-packages` is required.
+  > see [PEP 668 – Marking Python base environments as “externally managed”](https://peps.python.org/pep-0668/) why `--break-system-packages` is required.
 
 - `humble`
 
   ```bash
-  pip install openai ollama validators --ignore-installed
+  pip install openai validators --ignore-installed
   ```
 
 ### Build
 
-No released package is available, needs to be build in colcon workspace.
+To use the latest development version, build it in the colcon workspace.
 
 ```bash
 source /opt/ros/rolling/setup.bash
@@ -133,6 +135,10 @@ User need to choose which of them is used by `ros2ai` as following configuration
   ollama list
   ```
 
+  > [!NOTE]
+  > Ollama loads the models with a small context window (4096 tokens) by default, which is not enough for the tool calling (tool definitions, tool results) and ends up with `no user query found in messages` error.
+  > Set `OLLAMA_CONTEXT_LENGTH=16384` (or more) in the environment of the Ollama service, see [Ollama FAQ](https://github.com/ollama/ollama/blob/main/docs/faq.md).
+
 #### Optional
 
 | environmental variable | default                     | Note                   |
@@ -142,12 +148,29 @@ User need to choose which of them is used by `ros2ai` as following configuration
 | ROS2AI_ENDPOINT        | 'https://api.openai.com/v1' | API endpoint URL. e.g) https://api.anthropic.com/v1/ (Anthropic), http://127.0.0.1:11434/v1 (Ollama) |
 | ROS2AI_TEMPERATURE     | 1.0                         | [OpenAI temperature](https://platform.openai.com/docs/guides/text-generation/how-should-i-set-the-temperature-parameter), 0.0 - 1.0 for Anthropic |
 | ROS2AI_ROLE_SYSTEM     | built-in system role        | System role for the prompt, `{}` is replaced with the ROS distribution name |
+| ROS2AI_DOCS_CACHE      | '~/.cache/ros2ai/docs'      | Directory caching the [ROS 2 documentation](https://github.com/ros2/ros2_documentation) sources per distribution |
 | ROS2AI_CONTEXT_LIMIT   | 16000                       | Context limit of the session in estimated tokens, the oldest requests are dropped beyond it. Lower it for the local models with a small context window (e.g Ollama `num_ctx`) |
 | ROS2AI_SESSION_FILE    | `~/.local/state/ros2ai/session.json` | Session file to continue the previous requests with `--continue` (`$XDG_STATE_HOME` is honored) |
 
 > [!NOTE]
 > These are optional environmental variables. if not set, default value will be used.
 > The legacy `OPENAI_API_KEY`, `OPENAI_MODEL_NAME`, `OPENAI_ENDPOINT`, `OPENAI_TEMPERATURE` and `OPENAI_ROLE_SYSTEM` are still honored when the corresponding `ROS2AI_*` variable is not set.
+
+The following command line options prevail over the environmental variables, see `ros2 ai -h` for the complete list.
+
+| option                   | Note                   |
+| :----------------------- | :--------------------- |
+| `-m`, `--model <model>`  | LLM model, prevails over `ROS2AI_MODEL_NAME` |
+| `-u`, `--url <url>`      | LLM API endpoint URL, prevails over `ROS2AI_ENDPOINT` |
+| `-t`, `--token <token>`  | Maximum number of tokens of the completion (default: no limit) |
+| `-r`, `--role <role>`    | System role for the prompt, prevails over `ROS2AI_ROLE_SYSTEM` |
+| `-y`, `--yes`            | Execute the commands that change the system without confirmation |
+| `--dry-run`              | Print the commands that change the system instead of executing them |
+| `-c`, `--continue`       | Continue the previous session with the request, see [Session](#session) |
+| `-n`, `--nostream`       | Disable the streaming of the answer |
+| `-v`, `--verbose`        | Print the configuration, system role, tool calls and results |
+| `-s`, `--status`         | Check the LLM API status and configuration |
+| `-l`, `--list-models`    | Print the available models on the endpoint |
 
 ### Examples
 
@@ -297,6 +320,36 @@ The ROS 2 assistant decides by itself whether to answer the question or to opera
   > [!NOTE]
   > If the endpoint or the model does not support tool calling, the assistant answers the request without tools, nothing is executed.
 
+#### Documentation Lookup
+
+The assistant can look up the official [ROS 2 documentation](https://docs.ros.org/en/rolling/) of the running distribution (`ROS_DISTRO`) with the documentation tools, so that the answers about the ROS 2 concepts, tutorials, tools and APIs are grounded on the documentation of your distribution, and cite the page.
+`search_ros2_docs` searches the pages, `read_ros2_docs` reads a page, the pages found are printed under the tool call.
+
+The documentation sources ([ros2/ros2_documentation](https://github.com/ros2/ros2_documentation), one branch per distribution) are downloaded once into `~/.cache/ros2ai/docs/<distro>` (about 5MB) on the first lookup, and refreshed when older than a week.
+The lookup works offline afterwards, without the cache the assistant answers from its own knowledge.
+
+```bash
+root@tomoyafujita:~/docker_ws/ros2_colcon# ros2 ai "what is the difference between reliable and best effort QoS?"
+[ros2ai]: search_ros2_docs(query='quality of service reliability reliable best effort', limit=3)
+[ros2ai]:   downloaded the ROS 2 rolling documentation to /root/.cache/ros2ai/docs/rolling
+[ros2ai]:   https://docs.ros.org/en/rolling/ROS-Framework/interfaces/topics/About-Quality-of-Service-Settings.html
+[ros2ai]:   https://docs.ros.org/en/rolling/ROS-Framework/interfaces/topics/Working-with-topics/Quality-of-Service.html
+[ros2ai]:   https://docs.ros.org/en/rolling/ROS-Framework/interfaces/topics/Working-with-topics/Configuring-QoS-Overrides.html
+[ros2ai]: read_ros2_docs(page=ROS-Framework/interfaces/topics/About-Quality-of-Service-Settings)
+[ros2ai]:   https://docs.ros.org/en/rolling/ROS-Framework/interfaces/topics/About-Quality-of-Service-Settings.html
+[ros2ai]: read_ros2_docs(page=ROS-Framework/interfaces/topics/About-Quality-of-Service-Settings, offset=3500)
+[ros2ai]:   https://docs.ros.org/en/rolling/ROS-Framework/interfaces/topics/About-Quality-of-Service-Settings.html
+**Reliable and best effort are the two values of the QoS reliability policy.**
+
+- **Best effort** tries to deliver each sample but may lose it if the network is not robust. It does not retry, so it has lower latency and overhead. It is closest to UDP. The built-in **sensor data** profile uses it, because the latest reading matters more than receiving every reading.
+- **Reliable** guarantees that samples are delivered and may retry several times. It is closest to TCP, but the docs note it is still implemented over UDP. It is the default for publishers and subscriptions, and also for services and parameters.
+
+**Compatibility.** A subscription asks for a minimum quality and a publisher offers a maximum. A connection is only made if the request is not stricter than the offer:
+...
+A reliable subscription on a best-effort publisher gets no messages. This is a common reason a topic looks silent, for example with a camera or lidar driver that publishes best effort.
+
+Source: https://docs.ros.org/en/rolling/ROS-Framework/interfaces/topics/About-Quality-of-Service-Settings.html
+```
 #### Session
 
 `ros2 ai` keeps the context of the session, so that the follow-up requests can refer to the previous ones (e.g `it`).
